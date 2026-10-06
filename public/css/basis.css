@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Grundlagen - Reset, Seitenaufbau, Typografie
+   ========================================================================== */
+
+@layer basis {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--farbe-grund);
+    color: var(--farbe-text);
+    font-family: var(--schrift-text);
+    line-height: 1.5;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--schrift-titel);
+    font-weight: 400;
+    line-height: 1.15;
+
+    /* Ueberschriften mit tabindex="-1" (Endkarte, "Private Lobbys") bekommen
+       den Fokus nur per Skript, damit Screenreader dort weiterlesen. Sie sind
+       keine Bedienelemente und nicht per Tab erreichbar - ein Fokusrahmen
+       wuerde nur einen Klickbereich vortaeuschen. Knoepfe und Felder behalten
+       ihren Rahmen. */
+    &[tabindex="-1"]:focus {
+      outline: none;
+    }
+  }
+
+  /* Der Seitenrahmen: mittig, mit Deckelbreite. */
+  .seite {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: var(--raum-6) var(--raum-6) 70px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-6);
+
+    /* Auf schmalen Fenstern den Seitenrand verkleinern, damit die Tabelle
+       moeglichst lange ohne waagerechtes Scrollen auskommt. */
+    @media (max-width: 1080px) {
+      padding-left: var(--raum-3);
+      padding-right: var(--raum-3);
+    }
+  }
+
+  /* --- Kopfbereich --- */
+  .kopf {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--raum-4);
+    flex-wrap: wrap;
+  }
+
+  .kopf__marke {
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .kopf__zeile {
+    display: flex;
+    align-items: center;
+    gap: var(--raum-3);
+  }
+
+  .kopf__logo {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--rund-pille);
+    background: var(--farbe-akzent);
+
+    /* Die Strichfarbe des Logos gehoert ins CSS, nicht als Attribut ins SVG:
+       "stroke" ist eine ganz normale CSS-Eigenschaft, und so bleibt auch
+       diese Farbe an die Tokens gebunden. */
+    svg {
+      stroke: var(--farbe-grund);
+    }
+  }
+
+  .kopf__titel {
+    font-size: var(--titel-lg);
+    letter-spacing: -0.02em;
+  }
+
+  .kopf__untertitel {
+    margin-top: var(--raum-2);
+    max-width: 44ch;
+    font-size: var(--text-xl);
+    color: color-mix(in srgb, var(--farbe-text) 70%, transparent);
+  }
+
+  /* --- Fusszeile --- */
+  .fuss {
+    display: flex;
+    gap: var(--raum-4);
+    flex-wrap: wrap;
+    font-size: var(--text-md);
+    color: var(--neutral-700);
+  }
+
+  /* --- Nur fuer Screenreader --- */
+  .nur-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+}
+
+/* --- Ebene "zustand": Zustaende, die alles andere schlagen ----------------
+   Ein Element mit dem Attribut [hidden] muss IMMER unsichtbar sein. Die
+   Standardregel des Browsers dafuer ist aber schwach: Klassen wie .karte,
+   .spielbereich oder .vorschlaege setzen "display: flex" und wuerden sie
+   ueberstimmen - das Element bliebe sichtbar.
+
+   Deshalb steht die Regel in der Ebene "zustand", der letzten in der
+   Reihenfolge (festgelegt am Anfang von schriften.css). Eine spaetere Ebene
+   gewinnt gegen jede fruehere, unabhaengig von der Spezifitaet des
+   Selektors. So braucht es keine Vorrang-Markierung an der Eigenschaft. */
+@layer zustand {
+  [hidden] {
+    display: none;
+  }
+}

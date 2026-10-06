@@ -1,0 +1,352 @@
+/* ==========================================================================
+   Duell - zwei Spielbretter, Gefahrenstufe, Live-Signale, grosses Finale
+   --------------------------------------------------------------------------
+   Gilt nur im Modus "duell". Beim Zufallstier raten beide auf dasselbe Tier
+   und sehen dieselbe Tabelle - dort bleibt alles wie bisher.
+
+   Regeln wie im ganzen Projekt:
+   - alles in EINER Kaskadenebene ("duell"), keine Vorrang-Markierung
+     ("important"), keine IDs
+   - natives Nesting; BEM-Elemente/-Modifier bleiben eigene Regeln
+   - Bewegung nur in @media (prefers-reduced-motion: no-preference)
+   - alle Farben aus tokens.css, Groessen in rem
+
+   WICHTIG: "duell" muss in die @layer-Zeile in schriften.css, und zwar
+   hinter "lobby" und VOR "szene" und "zustand":
+     @layer schriften, tokens, basis, komponenten, spielfeld, lobby, duell, szene, zustand;
+   ========================================================================== */
+
+@layer duell {
+
+  /* --- Ein Spielbrett (Gegner oben, eigenes darunter) ---------------------- */
+  .brett {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-3);
+    padding: var(--raum-4) var(--raum-6);
+    border-radius: var(--rund-xl);
+    background: var(--papier);
+    box-shadow: var(--schatten-md);
+    /* Der Rahmen ist immer da (durchsichtig), damit beim Wechsel der
+       Gefahrenstufe nichts springt. */
+    border: 3px solid transparent;
+
+    @media (max-width: 1080px) {
+      padding: var(--raum-3);
+    }
+  }
+
+  .brett__kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--raum-2) var(--raum-4);
+  }
+
+  .brett__titel {
+    font-size: var(--titel-sm);
+  }
+
+  .brett__unter {
+    flex: 1;
+    font-size: var(--text-md);
+    color: var(--neutral-700);
+  }
+
+  /* Das eigene Brett traegt die bisherige grosse Tabelle. Sie bekommt hier
+     etwas weniger Mindestbreite als sonst (960px), weil das Brett selbst
+     Innenabstand und Rahmen hat - sonst muesste man schon bei 1280 Pixeln
+     waagerecht scrollen. Lange Werte trennt .kachel an Silbengrenzen. */
+  .brett__tabelle {
+    overflow-x: auto;
+    position: relative;
+
+    .tabelle {
+      min-width: 900px;
+    }
+  }
+
+  /* Weniger Seitenabstand im eigenen Brett: die Tabelle braucht den Platz. */
+  .brett--eigenes {
+    padding-inline: var(--raum-3);
+  }
+
+  /* --- Fortschritt: sieben Felder, eins pro Eigenschaft --------------------
+     Ein Feld ist "geknackt", sobald diese Eigenschaft in IRGENDEINEM Tipp
+     gestimmt hat. Geknackt erkennt man an Fuellung UND Haken, nicht nur an
+     der Farbe. */
+  .fortschritt {
+    display: flex;
+    align-items: center;
+    gap: var(--raum-3);
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  .fortschritt__felder {
+    display: flex;
+    gap: var(--raum-1);
+    list-style: none;
+  }
+
+  .fund {
+    min-width: 2.25rem;
+    padding: 2px var(--raum-1);
+    border: 2px dashed var(--neutral-600);
+    border-radius: var(--rund-sm);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-align: center;
+    color: var(--neutral-700);
+  }
+
+  .fund--ja {
+    border: 2px solid var(--treffer-rand);
+    background: var(--treffer-grund);
+    color: var(--treffer-text);
+  }
+
+  /* --- Gefahrenstufe: Wort + Symbol + Farbe, nie nur Farbe ----------------- */
+  .stufe {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-1);
+    padding: var(--raum-1) var(--raum-3);
+    border-radius: var(--rund-pille);
+    font-weight: 600;
+    white-space: nowrap;
+
+    svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      stroke: currentColor;
+    }
+  }
+
+  .stufe--kalt   { background: var(--neutral-200);  color: var(--neutral-800); }
+  .stufe--warm   { background: var(--akzent-200);   color: var(--akzent-900); }
+  .stufe--heiss  { background: var(--akzent-400);   color: var(--akzent-900); }
+  .stufe--gleich { background: var(--akzent-800);   color: var(--neutral-100); }
+
+  /* Das Brett des Gegners bekommt ab "heiss" einen sichtbaren Rahmen - das
+     ist die ruhige Variante, die auch ohne Animation wirkt. */
+  .brett--heiss  { border-color: var(--akzent-600); }
+  .brett--gleich { border-color: var(--akzent-700); }
+
+  /* --- Herzschlag ----------------------------------------------------------
+     client.js setzt .brett--puls nach JEDEM Zug des Gegners, solange er
+     "heiss" oder "gleich" ist, und nimmt die Klasse bei "animationend"
+     wieder weg. Genau DREI Schlaege (gut 2 Sekunden), dann Ruhe - eine
+     Dauerbewegung ueber 5 Sekunden waere ein Verstoss gegen WCAG 2.2.2. */
+  .brett--puls {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: herzschlag 0.75s ease-in-out 3;
+    }
+  }
+
+  /* --- "Lena tippt ..." ---------------------------------------------------- */
+  .tippt {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-2);
+    padding: var(--raum-1) var(--raum-3);
+    border-radius: var(--rund-pille);
+    background: var(--neutral-200);
+    font-size: var(--text-md);
+    color: var(--neutral-800);
+  }
+
+  .tippt__punkt {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--rund-pille);
+    background: currentColor;
+
+    &:nth-child(2) { --verzoegerung: 0.15s; }
+    &:nth-child(3) { --verzoegerung: 0.3s; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: puls 1s var(--verzoegerung, 0s) infinite;
+    }
+  }
+
+  .tippt__punkte {
+    display: inline-flex;
+    gap: 3px;
+  }
+
+  /* --- Meilenstein --------------------------------------------------------- */
+  .meilenstein {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-2);
+    padding: var(--raum-1) var(--raum-3);
+    border-radius: var(--rund-pille);
+    background: var(--akzent-100);
+    border: 1px solid var(--akzent-300);
+    font-size: var(--text-md);
+    color: var(--akzent-900);
+
+    strong {
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: meilenstein-auf 0.4s ease-out;
+    }
+  }
+
+  /* --- Die Tipps des Gegners: kompakte Spurkarten -------------------------
+     Eine Karte pro Tipp, neuester links. Statt der Werte nur die Bewertung -
+     so passt das Brett des Gegners ueber die grosse eigene Tabelle, auch bei
+     1024 Pixel Breite. */
+  .spuren {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--raum-2);
+    list-style: none;
+  }
+
+  .spur {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-1);
+    padding: var(--raum-2) var(--raum-3);
+    border-radius: var(--rund-md);
+    background: var(--farbe-flaeche);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: meilenstein-auf 0.4s ease-out;
+    }
+  }
+
+  .spur__name {
+    font-family: var(--schrift-titel);
+    font-size: var(--text-lg);
+  }
+
+  .spur__felder {
+    display: flex;
+    gap: 3px;
+  }
+
+  .spur__feld {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+
+  .spur__feld--treffer {
+    background: var(--treffer-grund);
+    color: var(--treffer-text);
+    box-shadow: inset 0 0 0 2px var(--treffer-rand);
+  }
+  .spur__feld--nah     { background: var(--nah-grund);     color: var(--nah-text); }
+  .spur__feld--daneben { background: var(--daneben-grund); color: var(--daneben-text); }
+
+  /* --- Grosses Finale ------------------------------------------------------ */
+  .endstand {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--raum-4);
+  }
+
+  .endstand__seite {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-2);
+    padding: var(--raum-4) var(--raum-6);
+    border-radius: var(--rund-xl);
+    background: var(--papier);
+    box-shadow: var(--schatten-md);
+
+    /* Die beiden Seiten drehen sich nacheinander auf - wie aufgedeckte
+       Karten. Ohne Animation stehen sie einfach da. */
+    @media (prefers-reduced-motion: no-preference) {
+      animation: aufdecken 0.6s ease-out var(--verzoegerung, 0s) backwards;
+    }
+
+    &:nth-child(2) { --verzoegerung: 0.35s; }
+
+    dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--raum-1) var(--raum-4);
+      font-size: var(--text-lg);
+    }
+
+    dt {
+      color: var(--neutral-700);
+    }
+
+    dd {
+      font-weight: 600;
+    }
+  }
+
+  /* Der Sieger: Farbe UND das Wort "gewonnen" in der Plakette. */
+  .endstand__seite--sieger {
+    background: var(--akzent-2-200);
+    border: 3px solid var(--akzent-2-600);
+  }
+
+  .endstand__kopf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--raum-2);
+  }
+
+  .endstand__wer {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutral-700);
+  }
+
+  .endstand__plakette {
+    padding: 2px var(--raum-3);
+    border-radius: var(--rund-pille);
+    background: var(--akzent-2-700);
+    color: var(--neutral-100);
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  .endstand__tier {
+    font-family: var(--schrift-titel);
+    font-size: var(--titel-md);
+  }
+
+  .endstand__fazit {
+    grid-column: 1 / -1;
+    padding: var(--raum-3) var(--raum-6);
+    border-radius: var(--rund-lg);
+    background: var(--papier);
+    font-size: var(--text-lg);
+    text-align: center;
+  }
+
+  /* --- Ablaeufe ------------------------------------------------------------ */
+  @keyframes herzschlag {
+    0%, 100% { box-shadow: var(--schatten-md), 0 0 0 0 var(--akzent-300); }
+    35%      { box-shadow: var(--schatten-md), 0 0 0 8px var(--akzent-300); }
+  }
+
+  @keyframes meilenstein-auf {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes aufdecken {
+    from { opacity: 0; transform: perspective(800px) rotateY(-70deg); }
+    to   { opacity: 1; transform: none; }
+  }
+
+}

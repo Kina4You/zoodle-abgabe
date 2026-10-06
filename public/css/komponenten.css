@@ -1,0 +1,260 @@
+/* ==========================================================================
+   Wiederverwendbare Bausteine - Knoepfe, Eingabefelder, Karten, Spielermarken, Dialog
+   --------------------------------------------------------------------------
+   Alles, was zu einem Baustein gehoert, steht in SEINEM Block: Zustaende wie
+   :disabled, Kindelemente und auch die Animationen. Animationen stehen dabei
+   immer in "@media (prefers-reduced-motion: no-preference)" - sie gelten also
+   nur fuer Nutzer, die in ihrem Betriebssystem NICHT "Bewegung reduzieren"
+   eingestellt haben. Fuer alle anderen gibt es keine Bewegung, ohne dass
+   irgendetwas nachtraeglich ueberschrieben werden muss.
+
+   BEM-Elemente und -Modifier (.knopf--primaer, .karte__titel) stehen bewusst
+   NICHT verschachtelt, sondern als eigene Regel direkt unter ihrem Block:
+   "&--primaer" kennt nur Sass, nicht der Browser.
+   ========================================================================== */
+
+@layer komponenten {
+
+  /* --- Knoepfe ------------------------------------------------------------ */
+  .knopf {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--raum-2);
+    padding: var(--raum-2) var(--raum-4);
+    border: 1px solid transparent;
+    border-radius: var(--rund-pille);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled)  { filter: brightness(1.05); }
+    &:active:not(:disabled) { transform: scale(0.97); }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+  }
+
+  /* Dunkle Schrift auf Orange: Helle Schrift kaeme hier nur auf 3,3 : 1 und
+     laege unter der Mindestanforderung von 4,5 : 1 (WCAG 2.2 AA). */
+  .knopf--primaer {
+    background: var(--farbe-akzent);
+    color: var(--farbe-text);
+  }
+
+  .knopf--sekundaer {
+    background: transparent;
+    border-color: var(--farbe-linie);
+    color: var(--farbe-text);
+  }
+
+  .knopf--gross {
+    min-height: 48px;
+    font-size: var(--text-xl);
+  }
+
+  /* Der Gegner hat einer Revanche schon zugestimmt - dieser Knopf wartet.
+     Die Hervorhebung darf NICHT nur aus der Animation bestehen: Wer weniger
+     Bewegung wuenscht, bekommt die Animation gar nicht. Der Ring aus
+     Akzentfarbe bleibt deshalb immer sichtbar. */
+  .knopf--ruft {
+    box-shadow: 0 0 0 3px var(--akzent-300);
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: knopf-ruft 1.4s ease-in-out infinite;
+    }
+  }
+
+  /* --- Eingabefelder ------------------------------------------------------ */
+  .feld {
+    width: 100%;
+    min-height: 48px;
+    padding: var(--raum-2) var(--raum-4);
+    border: 1px solid var(--farbe-linie);
+    border-radius: var(--rund-pille);
+    background: var(--neutral-100);
+    color: var(--farbe-text);
+    font: inherit;
+    font-size: var(--text-xl);
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  /* Bewusst NICHT in .feld und .knopf verschachtelt: ":where()" zaehlt bei
+     der Spezifitaet nicht mit, diese Regel wiegt nur so viel wie eine
+     Pseudoklasse (0,1,0). Als "&:focus-visible" im Baustein waere sie
+     doppelt so schwer (0,2,0). */
+  :where(.feld, .knopf):focus-visible {
+    outline: 2px solid var(--farbe-akzent);
+    outline-offset: 2px;
+  }
+
+  /* --- Karten ------------------------------------------------------------- */
+  .karte {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-2);
+    padding: var(--raum-4) var(--raum-6);
+    border-radius: var(--rund-lg);
+    background: var(--farbe-flaeche);
+    box-shadow: var(--schatten-sm);
+  }
+
+  .karte__kicker {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .karte__titel {
+    font-family: var(--schrift-titel);
+    font-size: var(--titel-sm);
+  }
+
+  /* --- Meldungen ---------------------------------------------------------- */
+  .meldung {
+    min-height: 1.4em;
+    font-size: var(--text-lg);
+    color: var(--akzent-800);
+  }
+
+  /* --- Spielermarken ------------------------------------------------------ */
+  .spielermarke {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-2);
+    padding: var(--raum-2) var(--raum-4);
+    border-radius: var(--rund-pille);
+    font-family: var(--schrift-titel);
+    font-size: var(--text-lg);
+    background: var(--neutral-200);
+    color: var(--neutral-700);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+  }
+
+  .spielermarke__notiz {
+    font-family: var(--schrift-text);
+    font-size: var(--text-sm);
+    opacity: 0.75;
+  }
+
+  .spielermarke--ich-dran {
+    background: var(--akzent-300);
+    color: var(--akzent-900);
+  }
+
+  .spielermarke--gegner-dran {
+    background: var(--akzent-2-300);
+    color: var(--akzent-2-900);
+  }
+
+  /* --- Dialog (Start- und Wartebildschirm) --------------------------------
+     Ein echtes <dialog>-Element. Mittig platzieren, ueber alles legen und den
+     Rest der Seite sperren erledigt der Browser bei showModal() selbst. Hier
+     stehen nur noch das Aussehen und die Korrekturen an seinen Vorgaben. */
+  .dialog {
+    flex-direction: column;
+    gap: var(--raum-3);
+    /* Nie breiter als das Fenster abzueglich eines Randes auf jeder Seite. */
+    width: min(520px, 100% - 2 * var(--raum-4));
+    /* Der Browser zentriert den Dialog ueber "margin: auto" - unser Reset in
+       basis.css setzt margin aber auf 0 und muss hier zurueckgenommen werden. */
+    margin: auto;
+    padding: var(--raum-6);
+    /* Der Browser gibt dem Dialog einen Rahmen und eine Systemschriftfarbe. */
+    border: 0;
+    border-radius: var(--rund-lg);
+    background: var(--farbe-grund);
+    color: var(--farbe-text);
+    box-shadow: var(--schatten-lg);
+
+    /* "display: flex" nur, solange der Dialog offen ist. Stuende es direkt
+       oben, schluege es die Browser-Regel, die den GESCHLOSSENEN Dialog
+       versteckt - dasselbe Problem wie bei [hidden] in basis.css. */
+    &[open] {
+      display: flex;
+    }
+
+    /* Die Abdunklung hinter dem Dialog. */
+    &::backdrop {
+      background: color-mix(in srgb, var(--neutral-900) 45%, transparent);
+    }
+
+    /* Ohne Animation steht der Dialog einfach sofort da. */
+    @media (prefers-reduced-motion: no-preference) {
+      animation: dialog-auf 0.3s ease-out;
+    }
+  }
+
+  .dialog__titel {
+    font-family: var(--schrift-titel);
+    font-size: var(--titel-md);
+  }
+
+  .dialog__text {
+    font-size: var(--text-lg);
+    color: color-mix(in srgb, var(--farbe-text) 75%, transparent);
+  }
+
+  /* Der Knopf im Anmeldedialog nimmt die volle Breite ein. */
+  .dialog__knopf {
+    width: 100%;
+    margin-top: var(--raum-2);
+  }
+
+  /* --- Pulsierende Punkte des Wartebildschirms ---------------------------- */
+  .punkte {
+    display: flex;
+    gap: var(--raum-2);
+  }
+
+  /* Die drei Punkte pulsieren nacheinander. Jeder Punkt legt dafuer nur seine
+     eigene Verzoegerung in der Variable --verzoegerung ab; die Animation
+     selbst steht nur EINMAL da und liest den Wert aus. Ohne Animation stehen
+     die Punkte still - die Variable hat dann keine Wirkung. */
+  .punkte__punkt {
+    width: 13px;
+    height: 13px;
+    border-radius: var(--rund-pille);
+    background: var(--farbe-akzent);
+
+    &:nth-child(2) { --verzoegerung: 0.2s; }
+    &:nth-child(3) { --verzoegerung: 0.4s; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: puls 1.2s var(--verzoegerung, 0s) infinite;
+    }
+  }
+
+  /* --- Ablaeufe der Animationen ------------------------------------------
+     @keyframes beschreiben nur, WIE sich etwas bewegt. Ob es sich bewegt,
+     entscheidet allein die Regel im jeweiligen Baustein. */
+  @keyframes knopf-ruft {
+    0%, 100% { box-shadow: 0 0 0 3px var(--akzent-300); }
+    50%      { box-shadow: 0 0 0 7px var(--akzent-200); }
+  }
+
+  @keyframes dialog-auf {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes puls {
+    0%, 100% { opacity: 0.3; transform: scale(0.85); }
+    50%      { opacity: 1;   transform: scale(1.15); }
+  }
+
+}

@@ -1,0 +1,145 @@
+/* ==========================================================================
+   Design-Tokens - die einzige Stelle, an der Farben, Schriften und Abstaende
+   festgelegt werden. Alle anderen CSS-Dateien greifen nur noch hierauf zu.
+   ========================================================================== */
+
+@layer tokens {
+
+  :root {
+    /* --- Grundfarben --- */
+    --farbe-grund:    #f5ead8;
+    --farbe-flaeche:  #ebddc5;
+    --farbe-text:     #201e1d;
+    --farbe-akzent:   #c67139;
+    --farbe-linie:    color-mix(in srgb, #201e1d 16%, transparent);
+
+    /* --- Tonwertreihen ---
+       Alle drei Reihen liegen auf derselben Helligkeitsskala: Stufe 300 von
+       Neutral, Akzent und Akzent-2 wirkt gleich hell. Wo sich Farben
+       voneinander abheben muessen, waehlt man deshalb bewusst VERSCHIEDENE
+       Stufen - siehe die Bewertungsfarben der Kacheln ganz unten.
+
+       Die Reihen sind bewusst VOLLSTAENDIG, obwohl das Spiel derzeit nur einen
+       Teil der Stufen nutzt. Eine Reihe mit Luecken waere keine Skala mehr, und
+       die Aussage oben - gleiche Stufe heisst gleiche Helligkeit - liesse sich
+       nicht mehr halten. Neue Bausteine greifen so auf fertige Stufen zu, statt
+       dass jedes Mal eine neue Farbe erfunden wird. */
+    --neutral-100: #f9f4ed;
+    --neutral-200: #eee7db;
+    --neutral-300: #dcd3c4;
+    --neutral-400: #c0b6a5;
+    --neutral-500: #a19786;
+    --neutral-600: #82796a;
+    --neutral-700: #645c50;
+    --neutral-800: #474238;
+    --neutral-900: #2e2b25;
+
+    --akzent-100: #fff2eb;
+    --akzent-200: #ffe1d0;
+    --akzent-300: #ffc6a5;
+    --akzent-400: #f6a06b;
+    --akzent-500: #d67f48;
+    --akzent-600: #b2622d;
+    --akzent-700: #8c491a;
+    --akzent-800: #643312;
+    --akzent-900: #402310;
+
+    --akzent-2-100: #f0fae1;
+    --akzent-2-200: #e1eecc;
+    --akzent-2-300: #ccdbb2;
+    --akzent-2-400: #aebf92;
+    --akzent-2-500: #8fa073;
+    --akzent-2-600: #728157;
+    --akzent-2-700: #56633f;
+    --akzent-2-800: #3d472b;
+    --akzent-2-900: #272e1b;
+
+    /* --- Farben der Lebensraum-Szene ---
+       Die vier Baender des Seitenhintergrunds von oben nach unten. Sie stehen
+       bewusst neben den Tonwertreihen und nicht in ihnen: Die Reihen tragen die
+       Bedienoberflaeche, diese Farben malen eine Landschaft. Wuerde man sie auf
+       die Skalen zwingen, aendert sich das Bild. */
+    --luft-oben:   #a3d1e8;
+    --luft-unten:  #d7ecf2;
+    --wald-fern:   #74a052;
+    --wald-nah:    #45693a;
+    --boden:       #8a6b42;
+    --meer-oben:   #3c86a3;
+    --meer-unten:  #17394d;
+
+    /* Das "Papier", auf dem die Inhalte vor der Szene liegen. Kein
+       durchsichtiges Glas: Die Kacheltabelle muss lesbar bleiben, auch ueber
+       dem dunklen Meer. */
+    --papier: color-mix(in srgb, var(--farbe-grund) 96%, transparent);
+
+    /* --- Schrift --- */
+    --schrift-titel: "Caprasimo", Georgia, serif;
+    --schrift-text:  "Figtree", system-ui, -apple-system, sans-serif;
+
+    /* --- Schriftgroessen ---
+       In rem statt px: 1rem ist die Grundschrift, die der Nutzer in seinem
+       Browser eingestellt hat (meist 16px). Wer dort eine groessere Schrift
+       waehlt, bekommt das ganze Spiel groesser - mit px wuerde diese
+       Einstellung ignoriert.
+
+       Kein Text ist kleiner als 0.875rem (14px). Dadurch fallen die drei
+       kleinsten Stufen auf denselben Wert; sie bleiben trotzdem getrennt
+       stehen, weil sie Verschiedenes bedeuten. Die Werte in Klammern sind die
+       alten Pixelgroessen. */
+    --text-xs:  0.875rem;   /* (11px) Spaltenkoepfe, Kicker - immer in Grossbuchstaben */
+    --text-sm:  0.875rem;   /* (12px) Beiwerk in der Vorschlagsliste */
+    --text-md:  0.875rem;   /* (13px) Fusszeile, Legende, Kacheltext */
+    --text-lg:  0.9375rem;  /* (15px) Sekundaertext, Meldungen */
+    --text-xl:  1rem;       /* (16px) Eingabefelder und Knoepfe - nie kleiner,
+                               sonst zoomt Safari auf dem iPhone beim Antippen */
+
+    --titel-sm: 1.625rem;   /* (26px) Kartenueberschrift */
+    --titel-md: 1.75rem;    /* (28px) Dialogueberschrift */
+    --titel-lg: 2.875rem;   /* (46px) Der Seitentitel "Zoodle" */
+
+    /* --- Abstaende --- */
+    --raum-1: 4px;
+    --raum-2: 9px;
+    --raum-3: 13px;
+    --raum-4: 18px;
+    --raum-6: 26px;
+    --raum-8: 35px;
+
+    /* --- Rundungen --- */
+    --rund-sm: 8px;
+    --rund-md: 16px;
+    --rund-lg: 28px;
+    --rund-xl: 32px;
+    --rund-pille: 999px;
+
+    /* Kacheln und Namenszellen des Spielfelds liegen bewusst zwischen lg und
+       md: weich genug, um freundlich zu wirken, aber noch als Raster lesbar. */
+    --rund-kachel: 22px;
+
+    /* --- Schatten --- */
+    --schatten-sm: 0 1px 2px  color-mix(in srgb, #2e2b25 14%, transparent);
+    --schatten-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
+    --schatten-lg: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
+
+    /* --- Bewertungsfarben der Hinweiskacheln ---
+       Die drei Bewertungen unterscheiden sich nicht nur im Farbton, sondern
+       vor allem in der HELLIGKEIT: falsch hell, nah dran mittel, stimmt
+       dunkel. Frueher lagen alle drei auf Stufe 300 und waren gleich hell
+       (Kontrast untereinander nur 1,01 bis 1,03 : 1) - bei einer
+       Rot-Gruen-Schwaeche sahen sie fast gleich aus. Helligkeit sieht jeder.
+       Jetzt hebt sich "stimmt" mit 4,3 : 1 von "falsch" und mit 3,1 : 1 von
+       "nah dran" ab. Die Schrift erreicht auf allen drei mindestens 5,9 : 1.
+
+       Stufe 700 statt 800: 800 wirkte schon fast schwarz. Damit der Treffer
+       trotzdem heraussticht, bekommt er einen Rahmen in Stufe 600 - der hebt
+       sich mit 3,3 : 1 vom Papier ab (WCAG verlangt fuer Grafik 3 : 1). */
+    --treffer-grund: var(--akzent-2-700);
+    --treffer-text:  var(--neutral-100);
+    --treffer-rand:  var(--akzent-2-600);
+    --nah-grund:     var(--akzent-400);
+    --nah-text:      var(--akzent-900);
+    --daneben-grund: var(--neutral-300);
+    --daneben-text:  var(--neutral-800);
+  }
+
+}

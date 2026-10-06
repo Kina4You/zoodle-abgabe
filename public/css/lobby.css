@@ -1,0 +1,527 @@
+/* ==========================================================================
+   Lobby - Auswahl nach der Anmeldung
+   --------------------------------------------------------------------------
+   Drei Wege ins Spiel: oeffentliche Warteschlange, eigene private Lobby
+   erstellen, einer privaten Lobby aus der Liste beitreten.
+
+   Regeln wie im ganzen Projekt:
+   - alles in EINER Kaskadenebene ("lobby"), keine Vorrang-Markierung
+     ("important"), keine IDs
+   - natives Nesting: Zustaende, Nachfahren und Media Queries stehen im
+     Baustein; BEM-Elemente/-Modifier bleiben eigene Regeln
+   - Bewegung nur in @media (prefers-reduced-motion: no-preference)
+   - alle Farben aus tokens.css
+
+   WICHTIG: Die Ebene "lobby" muss in der Reihenfolge in schriften.css
+   eingetragen werden, und zwar VOR "zustand":
+     @layer schriften, tokens, basis, komponenten, spielfeld, lobby, szene, zustand;
+   Fehlt sie dort, haengt der Browser sie hinten an - dann stuende sie hinter
+   "zustand" und wuerde [hidden] ueberstimmen.
+   ========================================================================== */
+
+@layer lobby {
+
+  /* --- Gesamtaufbau: links die zwei Wege, rechts die Liste ---------------- */
+  .lobby {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--raum-4);
+    align-items: start;
+
+    /* Schmale Fenster (Tablet hochkant, Handy): eine Spalte - die Wege oben,
+       die Liste darunter. Nebeneinander waeren beide zu schmal fuer ihren
+       Inhalt. */
+    @media (max-width: 900px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lobby__wege {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-4);
+  }
+
+  /* "Angemeldet als ..." - spannt ueber beide Spalten. */
+  .lobby__begruessung {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--raum-4);
+    padding: var(--raum-3) var(--raum-6);
+    border-radius: var(--rund-lg);
+    background: var(--papier);
+    box-shadow: var(--schatten-sm);
+    font-size: var(--text-lg);
+    /* Reicht die Breite nicht fuer beide Saetze, stehen sie untereinander. */
+    flex-wrap: wrap;
+
+    strong {
+      font-family: var(--schrift-titel);
+      font-weight: 400;
+      font-size: var(--text-xl);
+    }
+  }
+
+  /* Meldungen des Servers - spannt wie die Begruessung ueber beide Spalten.
+     Ergaenzt gegenueber der Vorlage. */
+  .lobby__meldung {
+    grid-column: 1 / -1;
+  }
+
+  /* --- Wegkarte: "Schnell spielen" und "Eigene Lobby" ---------------------- */
+  .weg {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-2);
+    padding: var(--raum-6);
+    border-radius: var(--rund-xl);
+    background: var(--papier);
+    box-shadow: var(--schatten-md);
+
+    p {
+      color: var(--neutral-700);
+    }
+
+    .knopf,
+    .modus-plakette {
+      align-self: flex-start;
+    }
+
+    .knopf {
+      margin-top: var(--raum-2);
+    }
+  }
+
+  .weg__kicker {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutral-700);
+  }
+
+  .weg__titel {
+    font-size: var(--titel-sm);
+  }
+
+  /* --- Liste der privaten Lobbys ------------------------------------------ */
+  .raeume {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-3);
+    padding: var(--raum-6);
+    border-radius: var(--rund-xl);
+    background: var(--papier);
+    box-shadow: var(--schatten-md);
+  }
+
+  .raeume__kopf {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--raum-3);
+  }
+
+  .raeume__titel {
+    font-size: var(--titel-sm);
+  }
+
+  .raeume__anzahl {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--neutral-700);
+  }
+
+  /* Die Liste scrollt in sich, statt die Seite in die Laenge zu ziehen: Mit
+     50 Lobbys waere sie sonst ueber 3600px hoch, und Fusszeile, Ueberschrift
+     und "X offen" laegen fuenf Bildschirme auseinander.
+     Der Innenabstand haelt Platz fuer den Fokusrahmen der Knoepfe frei -
+     sonst schnitte der Scrollbereich ihn am Rand ab. */
+  .raeume__liste {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-2);
+    max-height: min(60vh, 32rem);
+    overflow-y: auto;
+    overscroll-behavior: contain; /* am Ende nicht die ganze Seite mitreissen */
+    scrollbar-gutter: stable;     /* Platz fuer die Leiste, auch wenn sie fehlt */
+    padding: var(--raum-1);
+    /* Noetig wegen .nur-sr in den Knoepfen: Diese Texte sind "position:
+       absolute" und richten sich nach dem naechsten positionierten Vorfahren.
+       Ohne diese Zeile waere das die ganze Seite - die Scrollflaeche wuerde
+       sie nicht abschneiden, und die Seite bliebe unsichtbar 4000px lang. */
+    position: relative;
+  }
+
+  /* Suche (und spaeter weitere Filter) ueber der Liste. Bricht auf
+     schmalen Fenstern in mehrere Zeilen um. */
+  .raeume__filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--raum-3);
+  }
+
+  .raeume__suche {
+    flex: 1 1 14rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-1);
+
+    label {
+      font-weight: 600;
+    }
+  }
+
+  /* Auswahl als Pillen: Radio-Knoepfe im <fieldset> - fuer den Modus-Filter
+     der Lobbyliste und die "Zeit pro Zug" beim Erstellen. Gewaehlt erkennt
+     man am Rahmen, am Hintergrund UND am gefuellten Kreis - nicht nur an der
+     Farbe. */
+  .auswahl {
+    border: 0;
+
+    legend {
+      margin-bottom: var(--raum-1);
+      font-weight: 600;
+    }
+  }
+
+  /* Eigener Container fuer die Pillen: Ein <fieldset> selbst als Flexbox
+     verhaelt sich nicht in allen Browsern gleich. */
+  .auswahl__optionen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--raum-2);
+  }
+
+  .auswahl__option {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-1);
+    /* mindestens 44px hoch - bequem zu treffen, auch mit dem Finger */
+    min-height: 44px;
+    padding: var(--raum-1) var(--raum-3);
+    border: 1px solid var(--farbe-linie);
+    border-radius: var(--rund-pille);
+    background: var(--neutral-100);
+    font-size: var(--text-md);
+    cursor: pointer;
+
+    &:has(input:checked) {
+      border-color: var(--farbe-akzent);
+      background: var(--akzent-100);
+      font-weight: 600;
+    }
+
+    &:has(input:focus-visible) {
+      outline: 2px solid var(--farbe-akzent);
+      outline-offset: 2px;
+    }
+
+    input {
+      accent-color: var(--farbe-akzent);
+    }
+  }
+
+  /* Leere Liste: freundlicher Hinweis statt einer leeren Flaeche. */
+  .raeume__leer {
+    padding: var(--raum-6);
+    border: 2px dashed var(--neutral-400);
+    border-radius: var(--rund-lg);
+    text-align: center;
+    color: var(--neutral-700);
+  }
+
+  /* --- Ein Raum in der Liste ----------------------------------------------- */
+  .raum {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--raum-3);
+    padding: var(--raum-2) var(--raum-2) var(--raum-2) var(--raum-3);
+    border-radius: var(--rund-pille);
+    background: var(--neutral-100);
+    border: 1px solid var(--farbe-linie);
+
+    /* Handy: zwei Zeilen - oben der Name, darunter Modus und "Beitreten".
+       Das Zeichen links reicht ueber beide Zeilen (siehe die Elemente unten). */
+    @media (max-width: 560px) {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      row-gap: var(--raum-1);
+      border-radius: var(--rund-lg);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: raum-dazu 0.3s ease-out;
+    }
+  }
+
+  /* Anfangsbuchstabe des Erstellers als Kreis - rein dekorativ. */
+  .raum__zeichen {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--rund-pille);
+    background: var(--akzent-300);
+    color: var(--akzent-900);
+    font-family: var(--schrift-titel);
+    font-size: var(--text-xl);
+
+    @media (max-width: 560px) {
+      grid-row: span 2;
+    }
+  }
+
+  /* Lange Namen (bis 20 Zeichen) brechen um, statt abgeschnitten zu werden -
+     sonst stuende bei schmalen Fenstern nur noch "Lobby von Max..." da. */
+  .raum__name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+
+    @media (max-width: 560px) {
+      grid-column: 2 / -1;
+    }
+  }
+
+  /* Modus- und Zeit-Plakette nebeneinander. Handy: in der zweiten Zeile,
+     rechts vom Zeichen. */
+  .raum__plaketten {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--raum-1);
+
+    @media (max-width: 560px) {
+      grid-column: 2;
+      justify-content: flex-start;
+    }
+  }
+
+  .raum__knopf {
+    @media (max-width: 560px) {
+      grid-column: 3;
+    }
+  }
+
+  /* Hinweis unter der Ueberschrift: Alle Lobbys sind geschuetzt. */
+  .raeume__hinweis {
+    display: flex;
+    align-items: center;
+    gap: var(--raum-1);
+    font-size: var(--text-md);
+    color: var(--neutral-700);
+  }
+
+  /* --- Modus-Plakette: Symbol UND Text, nie nur Farbe ---------------------- */
+  .modus-plakette {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-1);
+    padding: var(--raum-1) var(--raum-3);
+    border-radius: var(--rund-pille);
+    font-size: var(--text-md);
+    font-weight: 600;
+    white-space: nowrap;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+  }
+
+  .modus-plakette--zufall {
+    background: var(--akzent-2-200);
+    color: var(--akzent-2-900);
+  }
+
+  .modus-plakette--duell {
+    background: var(--akzent-200);
+    color: var(--akzent-900);
+  }
+
+  /* --- Zeit-Plakette: Uhr-Symbol UND Text, wie die Modus-Plakette --------- */
+  .zeit-plakette {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--raum-1);
+    padding: var(--raum-1) var(--raum-3);
+    border-radius: var(--rund-pille);
+    background: var(--neutral-200);
+    color: var(--neutral-800);
+    font-size: var(--text-md);
+    font-weight: 600;
+    white-space: nowrap;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+  }
+
+  /* --- Modus-Auswahl im Dialog: Radio-Knoepfe als Karten ------------------- */
+  .modi {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--raum-3);
+    border: 0;
+
+    /* Sehr schmal: die Modus-Karten untereinander statt gequetscht. */
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+
+    legend {
+      margin-bottom: var(--raum-2);
+      font-weight: 600;
+    }
+  }
+
+  /* Das <label> umschliesst den Radio-Knopf: Ein Klick irgendwo auf die
+     Karte waehlt sie aus, und der Screenreader liest Titel + Beschreibung. */
+  .modus {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-1);
+    padding: var(--raum-4);
+    border: 2px solid var(--farbe-linie);
+    border-radius: var(--rund-lg);
+    background: var(--neutral-100);
+    cursor: pointer;
+
+    /* :has() - die Karte reagiert auf den Zustand ihres Radio-Knopfs.
+       Ausgewaehlt erkennt man am Rahmen UND am gefuellten Kreis, nicht nur
+       an der Farbe. */
+    &:has(input:checked) {
+      border-color: var(--farbe-akzent);
+      background: var(--akzent-100);
+    }
+
+    &:has(input:focus-visible) {
+      outline: 2px solid var(--farbe-akzent);
+      outline-offset: 2px;
+    }
+
+    input {
+      accent-color: var(--farbe-akzent);
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .modus__kopf {
+    display: flex;
+    align-items: center;
+    gap: var(--raum-2);
+    font-family: var(--schrift-titel);
+    font-size: var(--text-xl);
+
+    svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+    }
+  }
+
+  .modus__text {
+    font-size: var(--text-md);
+    color: var(--neutral-700);
+  }
+
+  /* --- Passwortfeld mit sichtbarem Label, Hinweis und Fehlermeldung ------- */
+  .passwort {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-1);
+
+    label {
+      font-weight: 600;
+    }
+  }
+
+  .passwort__zeile {
+    display: flex;
+    gap: var(--raum-2);
+
+    .feld {
+      flex: 1;
+    }
+
+    /* Fehlerzustand: roter Rahmen allein waere nur Farbe - deshalb steht
+       darunter immer ein Fehlertext, und aria-invalid meldet es dem
+       Screenreader. */
+    .feld[aria-invalid="true"] {
+      border: 2px solid var(--akzent-700);
+    }
+  }
+
+  .passwort__hinweis {
+    font-size: var(--text-md);
+    color: var(--neutral-700);
+  }
+
+  .passwort__fehler {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--akzent-800);
+  }
+
+  /* --- Breiterer Dialog fuer "Lobby erstellen" ---------------------------- */
+  .dialog--breit {
+    width: min(600px, 100% - 2 * var(--raum-4));
+  }
+
+  .lobby-formular {
+    display: flex;
+    flex-direction: column;
+    gap: var(--raum-4);
+  }
+
+  /* Kleine Symbole in Texten (Schloss) - Strichfarbe folgt der Schrift. */
+  .symbol {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    stroke: currentColor;
+  }
+
+  /* --- Fusszeile eines Dialogs: Abbrechen links, Hauptaktion rechts ------ */
+  .dialog__aktionen {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--raum-2);
+    margin-top: var(--raum-2);
+  }
+
+  /* Zusammenfassung "Modus + Passwort" im Wartedialog der eigenen Lobby. */
+  .lobby-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--raum-2);
+    padding: var(--raum-3) var(--raum-4);
+    border-radius: var(--rund-md);
+    background: var(--neutral-200);
+    font-size: var(--text-md);
+    color: var(--neutral-800);
+  }
+
+  .warten-zeile {
+    display: flex;
+    align-items: center;
+    gap: var(--raum-3);
+    color: var(--neutral-700);
+  }
+
+  /* --- Ablaeufe ------------------------------------------------------------ */
+  @keyframes raum-dazu {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+}

@@ -1,0 +1,68 @@
+/* ==========================================================================
+   Schriften - liegen im Projekt unter public/fonts/ und werden vom eigenen
+   Server ausgeliefert. Kein Google-Fonts-Aufruf: das Spiel funktioniert damit
+   auch ohne Internetverbindung und laedt keine Daten von Dritten nach.
+   ========================================================================== */
+
+/* --- Reihenfolge der Kaskadenebenen --------------------------------------
+   Diese Zeile muss ganz vorne in der ERSTEN eingebundenen CSS-Datei stehen,
+   denn sie legt fest, welche Ebene gewinnt: Bei widerspruechlichen Regeln
+   setzt sich immer die WEITER RECHTS stehende Ebene durch - egal, wie
+   spezifisch der Selektor in der linken Ebene ist.
+
+   Jede CSS-Datei steckt vollstaendig in ihrer eigenen Ebene. Das ist
+   Pflicht: Eine einzige Regel AUSSERHALB jeder Ebene wuerde sonst alle
+   Ebenen ueberstimmen und die ganze Reihenfolge aushebeln.
+
+   "zustand" steht ganz rechts und gewinnt darum immer. Dort liegt nur, was
+   sich wirklich gegen alles durchsetzen muss - siehe Ende von basis.css. */
+@layer schriften, tokens, basis, komponenten, spielfeld, lobby, duell, szene, zustand;
+
+@layer schriften {
+
+  /* Caprasimo - die Anzeigeschrift fuer Titel und Tiernamen. */
+  @font-face {
+    font-family: 'Caprasimo';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/Caprasimo-lat.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                   U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Caprasimo';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/Caprasimo-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                   U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                   U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
+  /* Figtree - die Fliesstextschrift. Eine "Variable Font": eine einzige Datei
+     deckt alle Schriftstaerken von 300 bis 900 ab. */
+  @font-face {
+    font-family: 'Figtree';
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url('../fonts/Figtree-lat.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                   U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Figtree';
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url('../fonts/Figtree-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                   U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                   U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
+}

@@ -1,0 +1,23 @@
+# Abhaengigkeiten - werden mit "npm install" wiederhergestellt
+node_modules/
+
+# Logdateien (z. B. aus "nohup npm start > zoodle.log")
+*.log
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Editoren
+.vscode/
+.idea/
+
+# Umgebungsvariablen
+.env
+
+# Persoenlicher Projektkontext fuer Claude Code - gehoert nicht ins Repository
+CLAUDE.local.md
+
+# Arbeitsablage fuer Praesentationen, Screenshots und Diagramme. Binaerdateien
+# lassen sich nicht diffen und wuerden die Historie dauerhaft aufblaehen.
+Claude outputs/

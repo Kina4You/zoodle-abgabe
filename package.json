@@ -1,0 +1,25 @@
+{
+  "name": "zoodle",
+  "version": "1.0.0",
+  "description": "Zoodle - ein verteiltes Zwei-Personen-Rateduell über Lebewesen (DHBW W3WI_110.2 Web-Entwicklung)",
+  "author": "Nico Breull",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "server/server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/server.js",
+    "build": "node --check server/server.js && node --check server/spiel.js && node --check server/tierdaten.js && node --check server/partien.js && node --check server/lobbys.js && node --check server/zugzeit.js && node scripts/pruefe-daten.js && node scripts/pruefe-important.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

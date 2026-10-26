@@ -23,8 +23,8 @@ npm run 3000              # oder: npm start -- <beliebiger Port>
 
 Das ist der Ablauf von Folie 6 (dort „`npm build`“ – siehe _Port festlegen_, warum es
 `npm run build` heißt). Dann **http://localhost:3000** im Browser öffnen. Zum Spielen braucht es **zwei
-Browserfenster** — eines davon am besten im privaten Modus, damit beide als
-getrennte Spieler zählen. Nach der Anmeldung steht man in der Lobby: Klicken beide
+Browser-Tabs oder -Fenster** – jeder Tab ist ein eigener Spieler, denn der Server
+erkennt Spieler an ihrer Verbindung, nicht an Cookies. Nach der Anmeldung steht man in der Lobby: Klicken beide
 auf **Warteschlange betreten**, startet die Partie. Alternativ eröffnet einer eine
 private Lobby mit Passwort, und der andere tritt ihr bei.
 

@@ -438,3 +438,22 @@ kaum davon zu unterscheiden.
 Der Kontrasttest prüft jetzt zusätzlich Spielermarken, Duell-Stufen, Plakette,
 Meldung, die Namen unter den Tipps und die Rahmen von Feld, Fokus und Treffer.
 Pixelmessung im Browser danach: kein aktiver Text unter dem Soll.
+
+### Abgabe-Check: Live-Test und Codequalität (26.10.)
+
+Alles gegen den echten Server über HTTPS, soweit nicht anders genannt.
+
+| Prüfung                                                                                | Ergebnis                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Hörsaal-Simulation: 40 Spieler von **einer** Adresse                                   | 20 Partien gleichzeitig, 1448 Züge, Median 41 ms pro Zug; Abbrüche beenden nur die eigene Partie                                                                                     |
+| Grenzen pro Adresse (3 Lobbys, Passwort-Sperre)                                        | greifen wie vorgesehen. Bewusst **nicht** angehoben: Die Adresse ist nur über IPv6 erreichbar, dort hat jedes Gerät eine eigene Adresse – der Kurs sperrt sich nicht gegenseitig aus |
+| WebKit (Engine von Safari), Playwright                                                 | 14 von 14: Partie mit Zugzeit, Sieg bei beiden, Revanche, Zeit abgelaufen, Partie verlassen, Duell, `wss://`, keine CSP-Fehler, kein waagerechtes Scrollen bei 1024 px               |
+| Firefox, Playwright                                                                    | ließ sich auf dem Testrechner nicht starten (macOS blockiert den Test-Firefox) – Handtest                                                                                            |
+| Neustart des Dienstes mitten in der Partie                                             | beide sehen „Verbindung verloren", Server nach 3,7 s zurück, neu anmelden und weiterspielen klappt                                                                                   |
+| **Fehler gefunden:** erster Klick im Dialog „Lobby erstellen" ging in WebKit ins Leere | behoben (`d857a71`): Formular als Grid statt Flex; Chromium in 23 Zuständen unverändert                                                                                              |
+| Logical Properties                                                                     | 15 physische Angaben umgestellt (`f8d908d`), Darstellung unverändert                                                                                                                 |
+| Meta-Angaben                                                                           | `description` und `theme-color` ergänzt (`1fd4035`)                                                                                                                                  |
+| Ungenutzte CSS-Klassen, Inline-Styles/-Skripte, `<br>`, Überschriften                  | keine bzw. h1 → h2 → h3 ohne Sprung                                                                                                                                                  |
+| Event-Listener                                                                         | 25 einmal beim Start, 2 an Elementen, die beim Neuzeichnen neu entstehen – kein Leck                                                                                                 |
+| Eingaben auf dem Server                                                                | alle 12 Ereignisse vom Client geprüft (Typ, Länge, Zustand, Zugrecht)                                                                                                                |
+| Bewusst nicht geändert                                                                 | Container Queries (jede Komponente hat nur einen Kontext), Paket-Updates (kurz vor der Abgabe kein Risiko)                                                                           |

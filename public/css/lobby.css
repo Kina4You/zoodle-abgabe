@@ -88,7 +88,7 @@
     }
 
     .knopf {
-      margin-top: var(--raum-2);
+      margin-block-start: var(--raum-2);
     }
   }
 
@@ -182,7 +182,7 @@
     border: 0;
 
     legend {
-      margin-bottom: var(--raum-1);
+      margin-block-end: var(--raum-1);
       font-weight: 600;
     }
   }
@@ -375,7 +375,7 @@
     }
 
     legend {
-      margin-bottom: var(--raum-2);
+      margin-block-end: var(--raum-2);
       font-weight: 600;
     }
   }
@@ -475,9 +475,12 @@
     width: min(600px, 100% - 2 * var(--raum-4));
   }
 
+  /* Grid statt "flex-direction: column" - sieht gleich aus, aber WebKit
+     (Safari) berechnet die Höhe der <fieldset> darin sonst beim ersten
+     Öffnen 61px zu groß. Beim ersten Klick korrigiert es sich, der mittig
+     sitzende Dialog springt - und der Klick landet daneben. */
   .lobby-formular {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: var(--raum-4);
   }
 
@@ -494,7 +497,7 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--raum-2);
-    margin-top: var(--raum-2);
+    margin-block-start: var(--raum-2);
   }
 
   /* Zusammenfassung "Modus + Passwort" im Wartedialog der eigenen Lobby. */

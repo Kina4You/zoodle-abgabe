@@ -116,7 +116,7 @@
      verschwindet beim Tippen (WCAG 3.3.2). */
   .feld-beschriftung {
     display: block;
-    margin-bottom: var(--raum-1);
+    margin-block-end: var(--raum-1);
     font-weight: 600;
   }
 
@@ -267,7 +267,7 @@
   /* Der Knopf im Anmeldedialog nimmt die volle Breite ein. */
   .dialog__knopf {
     width: 100%;
-    margin-top: var(--raum-2);
+    margin-block-start: var(--raum-2);
   }
 
   /* --- Pulsierende Punkte des Wartebildschirms ---------------------------- */

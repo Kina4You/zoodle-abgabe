@@ -48,8 +48,7 @@
     /* Auf schmalen Fenstern den Seitenrand verkleinern, damit die Tabelle
        möglichst lange ohne waagerechtes Scrollen auskommt. */
     @media (max-width: 1080px) {
-      padding-left: var(--raum-3);
-      padding-right: var(--raum-3);
+      padding-inline: var(--raum-3);
     }
   }
 
@@ -102,7 +101,7 @@
   }
 
   .kopf__untertitel {
-    margin-top: var(--raum-2);
+    margin-block-start: var(--raum-2);
     max-width: 44ch;
     font-size: var(--text-xl);
     color: color-mix(in srgb, var(--farbe-text) 70%, transparent);

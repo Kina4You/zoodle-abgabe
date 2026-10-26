@@ -115,9 +115,8 @@
     position: absolute;
     z-index: 20;
     /* direkt unter dem Feld - über dem Feld steht jetzt die Beschriftung */
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
+    inset-block-start: calc(100% + 6px);
+    inset-inline: 0;
     display: flex;
     flex-direction: column;
     padding: 6px;
@@ -151,7 +150,7 @@
     color: var(--farbe-text);
     font: inherit;
     font-size: var(--text-lg);
-    text-align: left;
+    text-align: start;
     cursor: pointer;
 
     &:hover {
@@ -210,8 +209,8 @@
 
   .konfetti__schnipsel {
     position: absolute;
-    top: -16px;
-    left: var(--links);
+    inset-block-start: -16px;
+    inset-inline-start: var(--links);
     width: 8px;
     height: 14px;
     border-radius: 2px;
@@ -274,7 +273,7 @@
      ------------------------------------------------------------------------ */
   .tabelle-huelle {
     overflow-x: auto;
-    padding-bottom: var(--raum-2);
+    padding-block-end: var(--raum-2);
     /* Bezugspunkt für die .nur-sr-Texte in den Kacheln (position:
        absolute). Ohne diese Zeile richten sie sich nach der ganzen Seite,
        werden vom Scrollbereich nicht abgeschnitten - und machen auf dem Handy
@@ -297,7 +296,7 @@
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      text-align: left;
+      text-align: start;
       color: var(--neutral-700);
     }
 

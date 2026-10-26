@@ -279,7 +279,9 @@ oder ein von außen beendeter Prozess.
 
 - **Von außen sind auf dem DHBW-Server nur 80 und 443 (Caddy) sowie 3333 offen.**
   Andere Ports blockt die Firewall.
-- **Der Server ist nur aus dem DHBW-Netz oder über VPN erreichbar.**
+- **Die Spieladresse hat nur einen IPv6-Eintrag (AAAA), keinen für IPv4.** Über IPv6
+  ist sie von überall erreichbar, auch ohne VPN (geprüft am 26.10. aus einem Heimnetz).
+  Ein Gerät ohne IPv6 kommt nicht hin – dann hilft das DHBW-Netz bzw. das VPN.
 
 ---
 

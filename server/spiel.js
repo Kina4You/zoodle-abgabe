@@ -1,9 +1,9 @@
 /**
  * Zoodle - Spiellogik
  *
- * WICHTIG: Diese Datei laeuft ausschliesslich auf dem Server. Das geheime Tier
- * verlaesst den Server erst, wenn die Partie vorbei ist. Ein Spieler kann sich
- * die Loesung also nicht aus dem Browser herausholen.
+ * WICHTIG: Diese Datei läuft ausschließlich auf dem Server. Das geheime Tier
+ * verlässt den Server erst, wenn die Partie vorbei ist. Ein Spieler kann sich
+ * die Lösung also nicht aus dem Browser herausholen.
  */
 
 /**
@@ -24,28 +24,28 @@ const GRUPPEN = {
   ],
 };
 
-/** Werte, die als Bruecke zwischen zwei Extremen gelten. */
+/** Werte, die als Brücke zwischen zwei Extremen gelten. */
 const BRUECKEN = {
   ernaehrung: 'Allesfresser',
   aktivitaet: 'dämmerungsaktiv',
 };
 
-/** Ab welchem Verhaeltnis eine Zahl als Treffer bzw. als nah dran zaehlt. */
+/** Ab welchem Verhältnis eine Zahl als Treffer bzw. als nah dran zählt. */
 const ZAHL_TREFFER = { min: 0.9, max: 1.1 };
-const ZAHL_NAH     = { min: 0.4, max: 2.5 };
+const ZAHL_NAH = { min: 0.4, max: 2.5 };
 
 /**
  * Die Hinweisspalten des Spielfelds. Der Client baut seine Tabelle aus genau
- * dieser Liste - Spalten muessen also nur an einer Stelle geaendert werden.
+ * dieser Liste - Spalten müssen also nur an einer Stelle geändert werden.
  */
 export const KATEGORIEN = Object.freeze([
-  { schluessel: 'klasse',     titel: 'Klasse',     art: 'text' },
+  { schluessel: 'klasse', titel: 'Klasse', art: 'text' },
   { schluessel: 'lebensraum', titel: 'Lebensraum', art: 'text' },
-  { schluessel: 'ernaehrung', titel: 'Ernährung',  art: 'text' },
-  { schluessel: 'gewichtKg',  titel: 'Gewicht',    art: 'zahl' },
-  { schluessel: 'groesseCm',  titel: 'Größe',      art: 'zahl' },
-  { schluessel: 'alterJahre', titel: 'Alter',      art: 'zahl' },
-  { schluessel: 'aktivitaet', titel: 'Aktiv',      art: 'text' },
+  { schluessel: 'ernaehrung', titel: 'Ernährung', art: 'text' },
+  { schluessel: 'gewichtKg', titel: 'Gewicht', art: 'zahl' },
+  { schluessel: 'groesseCm', titel: 'Größe', art: 'zahl' },
+  { schluessel: 'alterJahre', titel: 'Alter', art: 'zahl' },
+  { schluessel: 'aktivitaet', titel: 'Aktiv', art: 'text' },
 ]);
 
 // --------------------------------------------------------------------------
@@ -53,9 +53,9 @@ export const KATEGORIEN = Object.freeze([
 // --------------------------------------------------------------------------
 
 /**
- * Schreibt eine Zahl deutsch: Komma statt Punkt, ohne ueberfluessige Nullen.
+ * Schreibt eine Zahl deutsch: Komma statt Punkt, ohne überflüssige Nullen.
  *
- * Der Trick ist parseFloat: Es wirft angehaengte Nullen weg, die toFixed
+ * Der Trick ist parseFloat: Es wirft angehängte Nullen weg, die toFixed
  * gerade erst erzeugt hat. Aus "0.10" wird 0.1, aus "2.00" wird 2. Erst
  * danach wird der Punkt zum Komma.
  *
@@ -68,18 +68,16 @@ function deutscheZahl(zahl, maxStellen) {
 }
 
 export function formatiereGewicht(kg) {
-  if (kg >= 1000)  return `${Math.round(kg / 1000)} t`;
-  if (kg >= 1)     return `${deutscheZahl(kg, 1)} kg`;
+  if (kg >= 1000) return `${Math.round(kg / 1000)} t`;
+  if (kg >= 1) return `${deutscheZahl(kg, 1)} kg`;
   if (kg >= 0.001) return `${Math.round(kg * 1000)} g`;
-  // Unter einem Gramm - Ameise, Marienkaefer und Verwandtschaft.
+  // Unter einem Gramm - Ameise, Marienkäfer und Verwandtschaft.
   return `${deutscheZahl(kg * 1000, 2)} g`;
 }
 
 export function formatiereGroesse(cm) {
   // Ab einem Meter in Metern, darunter in Zentimetern.
-  return cm >= 100
-    ? `${deutscheZahl(cm / 100, 1)} m`
-    : `${deutscheZahl(cm, 1)} cm`;
+  return cm >= 100 ? `${deutscheZahl(cm / 100, 1)} m` : `${deutscheZahl(cm, 1)} cm`;
 }
 
 const FORMAT = {
@@ -97,7 +95,7 @@ function gleicheGruppe(feld, a, b) {
   return (GRUPPEN[feld] ?? []).some((gruppe) => gruppe.includes(a) && gruppe.includes(b));
 }
 
-/** Ist einer der beiden Werte der "Brueckenwert" dieses Feldes? */
+/** Ist einer der beiden Werte der "Brückenwert" dieses Feldes? */
 function istBruecke(feld, a, b) {
   const bruecke = BRUECKEN[feld];
   return bruecke !== undefined && (a === bruecke || b === bruecke);
@@ -120,7 +118,10 @@ export function vergleiche(tipp, geheimnis) {
       let bewertung = 'daneben';
       if (wertTipp === wertZiel) {
         bewertung = 'treffer';
-      } else if (gleicheGruppe(schluessel, wertTipp, wertZiel) || istBruecke(schluessel, wertTipp, wertZiel)) {
+      } else if (
+        gleicheGruppe(schluessel, wertTipp, wertZiel) ||
+        istBruecke(schluessel, wertTipp, wertZiel)
+      ) {
         bewertung = 'nah';
       }
       return { schluessel, titel, anzeige: String(wertTipp), bewertung, richtung: null };
@@ -140,9 +141,9 @@ export function vergleiche(tipp, geheimnis) {
       titel,
       anzeige: FORMAT[schluessel](wertTipp),
       bewertung,
-      // Kein Pfeil bei einem Treffer: eine gruene Kachel mit Pfeil waere
-      // widerspruechlich. Der Pfeil zeigt, wo das GESUCHTE Tier liegt.
-      richtung: bewertung === 'treffer' ? null : (wertTipp < wertZiel ? 'hoeher' : 'niedriger'),
+      // Kein Pfeil bei einem Treffer: eine grüne Kachel mit Pfeil wäre
+      // widersprüchlich. Der Pfeil zeigt, wo das GESUCHTE Tier liegt.
+      richtung: bewertung === 'treffer' ? null : wertTipp < wertZiel ? 'hoeher' : 'niedriger',
     };
   });
 }
@@ -156,15 +157,15 @@ export class Spiel {
    * @param {string} idA        Socket-Id des ersten Spielers
    * @param {string} idB        Socket-Id des zweiten Spielers
    * @param {object | null} geheimnis  Das gesuchte Tier (Zufallstier).
-   *   Im Duell null - dort waehlen die Spieler die Tiere selbst.
+   *   Im Duell null - dort wählen die Spieler die Tiere selbst.
    * @param {string} [modus]    'zufall' oder 'duell' (siehe server/lobbys.js)
    * @param {number} [zugzeit]  Sekunden pro Zug, 0 = ohne Zeitlimit. Die Uhr
-   *   selbst laeuft in server/zugzeit.js - hier steht nur die Einstellung.
+   *   selbst läuft in server/zugzeit.js - hier steht nur die Einstellung.
    *
    * Die beiden Modi:
    *   zufall  Der Server lost EIN Tier aus, beide raten darauf.
-   *   duell   Jeder waehlt ein Tier fuer den anderen ("Wahl"-Phase), danach
-   *           raet jeder auf SEIN Tier. Wer zuerst richtig liegt, gewinnt.
+   *   duell   Jeder wählt ein Tier für den anderen ("Wahl"-Phase), danach
+   *           rät jeder auf SEIN Tier. Wer zuerst richtig liegt, gewinnt.
    */
   constructor(idA, idB, geheimnis, modus = 'zufall', zugzeit = 0) {
     this.spielerIds = [idA, idB];
@@ -173,13 +174,13 @@ export class Spiel {
     this.zugzeit = zugzeit;
     this.versuche = [];
     this.beendet = false;
-    // Wer anfaengt, wird ausgelost - sonst haette immer derselbe einen Vorteil.
+    // Wer anfängt, wird ausgelost - sonst hätte immer derselbe einen Vorteil.
     this.amZug = Math.random() < 0.5 ? idA : idB;
 
     // Nur im Duell: welches Tier muss welcher Spieler erraten?
-    //   spielerId -> Tier, das sein GEGNER fuer ihn gewaehlt hat
+    //   spielerId -> Tier, das sein GEGNER für ihn gewählt hat
     this.ziele = new Map();
-    // 'wahl': beide waehlen noch ein Tier fuer den anderen; 'raten': es laeuft.
+    // 'wahl': beide wählen noch ein Tier für den anderen; 'raten': es läuft.
     this.phase = modus === 'duell' ? 'wahl' : 'raten';
   }
 
@@ -188,7 +189,7 @@ export class Spiel {
   }
 
   /**
-   * Das Tier, das dieser Spieler erraten muss. Beim Zufallstier ist es fuer
+   * Das Tier, das dieser Spieler erraten muss. Beim Zufallstier ist es für
    * beide dasselbe, im Duell hat es der Gegner ausgesucht.
    * @returns {object | undefined}
    */
@@ -209,15 +210,15 @@ export class Spiel {
     this.amZug = this.gegnerVon(this.amZug);
   }
 
-  /** Duell: Hat dieser Spieler schon ein Tier fuer seinen Gegner gewaehlt? */
+  /** Duell: Hat dieser Spieler schon ein Tier für seinen Gegner gewählt? */
   hatGewaehlt(waehlerId) {
     return this.ziele.has(this.gegnerVon(waehlerId));
   }
 
   /**
-   * Duell: Ein Spieler waehlt das Tier, das sein Gegner erraten muss.
-   * Haben beide gewaehlt, beginnt das Raten. Der Aufrufer prueft vorher,
-   * dass gerade gewaehlt wird und dieser Spieler noch nicht gewaehlt hat.
+   * Duell: Ein Spieler wählt das Tier, das sein Gegner erraten muss.
+   * Haben beide gewählt, beginnt das Raten. Der Aufrufer prüft vorher,
+   * dass gerade gewählt wird und dieser Spieler noch nicht gewählt hat.
    */
   waehleTier(waehlerId, tier) {
     this.ziele.set(this.gegnerVon(waehlerId), tier);
@@ -227,17 +228,20 @@ export class Spiel {
   /**
    * Wurde dieses Tier schon geraten?
    *
-   * Beim Zufallstier zaehlen die Tipps BEIDER Spieler - sie suchen ja
-   * dasselbe Tier. Im Duell zaehlen nur die eigenen: Was der Gegner geraten
+   * Beim Zufallstier zählen die Tipps BEIDER Spieler - sie suchen ja
+   * dasselbe Tier. Im Duell zählen nur die eigenen: Was der Gegner geraten
    * hat, kann genau das Tier sein, das ich suche.
    */
   schonGeraten(tierName, spielerId) {
-    return this.versuche.some((versuch) => versuch.tierName === tierName
-      && (this.modus !== 'duell' || versuch.spielerId === spielerId));
+    return this.versuche.some(
+      (versuch) =>
+        versuch.tierName === tierName &&
+        (this.modus !== 'duell' || versuch.spielerId === spielerId),
+    );
   }
 
   /**
-   * Fuehrt einen Rateversuch aus. Der Aufrufer muss vorher geprueft haben,
+   * Führt einen Rateversuch aus. Der Aufrufer muss vorher geprüft haben,
    * dass der Spieler am Zug ist und das Tier noch nicht geraten wurde.
    */
   rate(spielerId, tier) {

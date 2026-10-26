@@ -7,24 +7,24 @@
  * Warum im Browser und nicht auf dem Server? Beide Browser bekommen die
  * Bewertungen aller Tipps ohnehin mit der Nachricht "zug". Der Fortschritt ist
  * nur eine andere DARSTELLUNG dieser Daten - es entsteht keine neue
- * Information, also auch nichts, womit sich schummeln liesse.
+ * Information, also auch nichts, womit sich schummeln ließe.
  */
 
 /**
- * Die sieben Eigenschaften in der Reihenfolge der Tabelle - mit Kurzform fuer
- * die Felder ("Kl"), Namen ("Klasse") und dem Artikel fuer Saetze ("die Klasse").
+ * Die sieben Eigenschaften in der Reihenfolge der Tabelle - mit Kurzform für
+ * die Felder ("Kl"), Namen ("Klasse") und dem Artikel für Sätze ("die Klasse").
  */
 export const EIGENSCHAFTEN = Object.freeze([
-  { schluessel: 'klasse',     kurz: 'Kl', name: 'Klasse',         imSatz: 'die Klasse' },
-  { schluessel: 'lebensraum', kurz: 'Le', name: 'Lebensraum',     imSatz: 'den Lebensraum' },
-  { schluessel: 'ernaehrung', kurz: 'Er', name: 'Ernährung',      imSatz: 'die Ernährung' },
-  { schluessel: 'gewichtKg',  kurz: 'Ge', name: 'Gewicht',        imSatz: 'das Gewicht' },
-  { schluessel: 'groesseCm',  kurz: 'Gr', name: 'Größe',          imSatz: 'die Größe' },
-  { schluessel: 'alterJahre', kurz: 'Al', name: 'Alter',          imSatz: 'das Alter' },
+  { schluessel: 'klasse', kurz: 'Kl', name: 'Klasse', imSatz: 'die Klasse' },
+  { schluessel: 'lebensraum', kurz: 'Le', name: 'Lebensraum', imSatz: 'den Lebensraum' },
+  { schluessel: 'ernaehrung', kurz: 'Er', name: 'Ernährung', imSatz: 'die Ernährung' },
+  { schluessel: 'gewichtKg', kurz: 'Ge', name: 'Gewicht', imSatz: 'das Gewicht' },
+  { schluessel: 'groesseCm', kurz: 'Gr', name: 'Größe', imSatz: 'die Größe' },
+  { schluessel: 'alterJahre', kurz: 'Al', name: 'Alter', imSatz: 'das Alter' },
   { schluessel: 'aktivitaet', kurz: 'Ak', name: 'Aktivitätszeit', imSatz: 'die Aktivitätszeit' },
 ]);
 
-/** So heissen die Gefahrenstufen in der Anzeige. */
+/** So heißen die Gefahrenstufen in der Anzeige. */
 export const STUFENTEXT = Object.freeze({
   kalt: 'kalt',
   warm: 'warm',
@@ -37,7 +37,7 @@ export const STUFENTEXT = Object.freeze({
  * geknackt, sobald sie in IRGENDEINEM seiner Tipps gestimmt hat.
  *
  * @param {Array<{hinweise: Array<{schluessel: string, bewertung: string}>}>} tipps
- * @returns {Set<string>} Die Schluessel, z. B. Set { 'klasse', 'alterJahre' }
+ * @returns {Set<string>} Die Schlüssel, z. B. Set { 'klasse', 'alterJahre' }
  */
 export function geknackt(tipps) {
   const ergebnis = new Set();
@@ -71,9 +71,9 @@ export function aufzaehlung(woerter) {
 
 /** Die Namen der noch offenen Eigenschaften, z. B. ['Gewicht', 'Größe']. */
 export function fehlende(geknacktMenge) {
-  return EIGENSCHAFTEN
-    .filter((eigenschaft) => !geknacktMenge.has(eigenschaft.schluessel))
-    .map((eigenschaft) => eigenschaft.name);
+  return EIGENSCHAFTEN.filter((eigenschaft) => !geknacktMenge.has(eigenschaft.schluessel)).map(
+    (eigenschaft) => eigenschaft.name,
+  );
 }
 
 /**

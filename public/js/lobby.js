@@ -1,41 +1,55 @@
 /**
  * Lobby - alles zwischen Anmeldung und Spielfeld.
  *
- * Drei Wege ins Spiel: oeffentliche Warteschlange, eigene private Lobby
+ * Drei Wege ins Spiel: öffentliche Warteschlange, eigene private Lobby
  * erstellen, einer privaten Lobby aus der Liste beitreten.
  *
  * Dieses Modul kennt kein Socket.io. Es bekommt von client.js eine Funktion
  * "sende", mit der es Nachrichten an den Server schickt, und client.js ruft
- * umgekehrt die Methoden des zurueckgegebenen Objekts auf, wenn der Server
- * antwortet. Die Regeln (Passwortlaenge, Sperre, Modus) prueft der Server -
- * was hier geprueft wird, ist nur Komfort fuer ehrliche Spieler.
+ * umgekehrt die Methoden des zurückgegebenen Objekts auf, wenn der Server
+ * antwortet. Die Regeln (Passwortlänge, Sperre, Modus) prüft der Server -
+ * was hier geprüft wird, ist nur Komfort für ehrliche Spieler.
  *
- * Namen anderer Spieler landen ausschliesslich per textContent im Dokument.
+ * Namen anderer Spieler landen ausschließlich per textContent im Dokument.
  */
 
 const MIN_PASSWORTLAENGE = 4;
 const MAX_PASSWORTLAENGE = 32;
 
-/** So heissen die Modi in der Anzeige. */
+/** So heißen die Modi in der Anzeige. */
 const MODUSNAMEN = { zufall: 'Zufallstier', duell: 'Duell' };
 
-/** Fehlertexte zu den Gruenden, die der Server bei "beitrittAbgelehnt" nennt. */
+/** Fehlertexte zu den Gründen, die der Server bei "beitrittAbgelehnt" nennt. */
 function beitrittsFehler(grund, erstellerName) {
   switch (grund) {
-    case 'passwort': return `Das Passwort stimmt nicht. Frag ${erstellerName} nach dem richtigen.`;
-    case 'gesperrt': return 'Zu viele Versuche. Warte kurz.';
-    case 'voll':     return 'Diese Lobby ist schon voll.';
-    default:         return 'Diese Lobby gibt es nicht mehr.';
+    case 'passwort':
+      return `Das Passwort stimmt nicht. Frag ${erstellerName} nach dem richtigen.`;
+    case 'gesperrt':
+      return 'Zu viele Versuche. Warte kurz.';
+    case 'voll':
+      return 'Diese Lobby ist schon voll.';
+    case 'beschaeftigt':
+      return 'Der Server ist gerade beschäftigt. Versuch es gleich noch einmal.';
+    default:
+      return 'Diese Lobby gibt es nicht mehr.';
   }
 }
 
-/** Fehlertexte zu den Gruenden, die der Server bei "erstellenAbgelehnt" nennt. */
+/** Fehlertexte zu den Gründen, die der Server bei "erstellenAbgelehnt" nennt. */
 function erstellFehler(grund) {
   switch (grund) {
-    case 'modus': return 'Diesen Modus gibt es noch nicht.';
-    case 'zugzeit': return 'Diese Zeit pro Zug gibt es nicht.';
-    case 'voll':  return 'Gerade gibt es zu viele Lobbys. Versuch es gleich noch einmal.';
-    default:      return `Das Passwort braucht ${MIN_PASSWORTLAENGE} bis ${MAX_PASSWORTLAENGE} Zeichen.`;
+    case 'modus':
+      return 'Diesen Modus gibt es noch nicht.';
+    case 'zugzeit':
+      return 'Diese Zeit pro Zug gibt es nicht.';
+    case 'voll':
+      return 'Gerade gibt es zu viele Lobbys. Versuch es gleich noch einmal.';
+    case 'beschaeftigt':
+      return 'Der Server ist gerade beschäftigt. Versuch es gleich noch einmal.';
+    case 'zuVieleVonDir':
+      return 'Aus deinem Netzwerk sind schon 3 Lobbys offen. Tritt einer bei oder versuch es später.';
+    default:
+      return `Das Passwort braucht ${MIN_PASSWORTLAENGE} bis ${MAX_PASSWORTLAENGE} Zeichen.`;
   }
 }
 
@@ -49,7 +63,7 @@ function plakette(modus) {
   return ausVorlage(modus === 'duell' ? '#vorlage-plakette-duell' : '#vorlage-plakette-zufall');
 }
 
-/** Die Zugzeit in Worten - fuer Plaketten und Screenreader. */
+/** Die Zugzeit in Worten - für Plaketten und Screenreader. */
 function zeitKurz(zugzeit) {
   return zugzeit ? `${zugzeit} s` : 'ohne Limit';
 }
@@ -65,15 +79,15 @@ function zeitPlakette(zugzeit) {
 }
 
 /**
- * Haelt einen Dialog offen, solange er offen sein soll - Esc schliesst ihn
- * dann NICHT. Gebraucht fuer Anmeldung und die beiden Wartedialoge: Dort
+ * Hält einen Dialog offen, solange er offen sein soll - Esc schließt ihn
+ * dann NICHT. Gebraucht für Anmeldung und die beiden Wartedialoge: Dort
  * soll niemand versehentlich die Lobby schliessen oder die Anmeldung
- * ueberspringen.
+ * überspringen.
  *
- * Zwei Stufen, weil Chrome sich das Schliessen per Esc nicht immer verbieten
- * laesst (ohne vorherigen Klick, oder beim zweiten Esc in Folge):
- *   1. "cancel" abfangen - das reicht in den meisten Faellen.
- *   2. Geht der Dialog trotzdem zu, sofort wieder oeffnen.
+ * Zwei Stufen, weil Chrome sich das Schließen per Esc nicht immer verbieten
+ * lässt (ohne vorherigen Klick, oder beim zweiten Esc in Folge):
+ *   1. "cancel" abfangen - das reicht in den meisten Fällen.
+ *   2. Geht der Dialog trotzdem zu, sofort wieder öffnen.
  *
  * @param {HTMLDialogElement} dialog
  * @param {() => boolean} sollOffenSein  Fragt den aktuellen Zustand ab
@@ -86,45 +100,75 @@ export function haltOffen(dialog, sollOffenSein) {
 }
 
 /**
- * Verbindet einen "Anzeigen"-Knopf mit einem Passwortfeld.
- * aria-pressed sagt dem Screenreader, ob der Knopf gerade gedrueckt ist.
+ * Verbindet einen "Passwort anzeigen"-Knopf mit einem Passwortfeld.
+ *
+ * Ein Umschaltknopf mit FESTER Beschriftung: Ob er gedrückt ist, sagt allein
+ * aria-pressed (der Screenreader liest "Passwort anzeigen, gedrückt"). Ein
+ * wechselnder Text ("Verbergen") ergäbe zusammen mit "gedrückt" das
+ * Gegenteil (WCAG 4.1.2). Sehende erkennen den Zustand am Feld selbst:
+ * Punkte oder Klartext.
  */
 function verbindeAnzeigen(knopf, feld) {
   knopf.addEventListener('click', () => {
     const zeigen = feld.type === 'password';
     feld.type = zeigen ? 'text' : 'password';
     knopf.setAttribute('aria-pressed', String(zeigen));
-    knopf.textContent = zeigen ? 'Verbergen' : 'Anzeigen';
   });
 }
 
-/** Setzt einen "Anzeigen"-Knopf zurueck, damit ein Passwort nie offen stehen bleibt. */
+/** Setzt einen "Passwort anzeigen"-Knopf zurück, damit ein Passwort nie offen stehen bleibt. */
 function verbirgPasswort(knopf, feld) {
   feld.type = 'password';
   knopf.setAttribute('aria-pressed', 'false');
-  knopf.textContent = 'Anzeigen';
+}
+
+/**
+ * Markiert ein Feld als fehlerhaft - oder wieder als in Ordnung.
+ *
+ * aria-invalid meldet den Fehler dem Screenreader, und aria-describedby
+ * hängt den Fehlertext an das Feld - aber nur, solange es einen Fehler gibt.
+ * Ein Hinweis, der immer gilt, bleibt angehängt. Gebraucht von den
+ * Passwortfeldern hier und vom Namensfeld in client.js (WCAG 3.3.1).
+ *
+ * @param {HTMLElement} feld
+ * @param {HTMLElement} fehler  Das Element mit dem Fehlertext
+ * @param {boolean} fehlerhaft
+ * @param {HTMLElement | null} [hinweis]
+ */
+export function setzeFeldfehler(feld, fehler, fehlerhaft, hinweis = null) {
+  if (fehlerhaft) {
+    feld.setAttribute('aria-invalid', 'true');
+  } else {
+    feld.removeAttribute('aria-invalid');
+  }
+
+  const beschreibungen = [];
+  if (hinweis) beschreibungen.push(hinweis.id);
+  if (fehlerhaft) beschreibungen.push(fehler.id);
+  if (beschreibungen.length > 0) {
+    feld.setAttribute('aria-describedby', beschreibungen.join(' '));
+  } else {
+    feld.removeAttribute('aria-describedby');
+  }
 }
 
 /**
  * Ein Passwortfeld samt Hinweis und Fehlermeldung.
  *
  * Der Fehler ist nie nur ein roter Rahmen: Es steht immer ein Text darunter,
- * aria-invalid meldet den Fehler dem Screenreader, und aria-describedby
- * haengt den Fehlertext an das Feld - aber nur, solange er sichtbar ist.
+ * und setzeFeldfehler() meldet ihn dem Screenreader.
  */
 function passwortFeld(feld, hinweis, fehler) {
   return {
     zeigeFehler(text) {
       fehler.textContent = `✕ ${text}`;
       fehler.hidden = false;
-      feld.setAttribute('aria-invalid', 'true');
-      feld.setAttribute('aria-describedby', `${hinweis.id} ${fehler.id}`);
+      setzeFeldfehler(feld, fehler, true, hinweis);
     },
     loescheFehler() {
       fehler.textContent = '';
       fehler.hidden = true;
-      feld.removeAttribute('aria-invalid');
-      feld.setAttribute('aria-describedby', hinweis.id);
+      setzeFeldfehler(feld, fehler, false, hinweis);
     },
   };
 }
@@ -132,49 +176,53 @@ function passwortFeld(feld, hinweis, fehler) {
 /**
  * @param {object} optionen
  * @param {(ereignis: string, daten?: object) => void} optionen.sende  Schickt an den Server
- * @param {(text: string) => void} optionen.sage  Ansage fuer Screenreader
+ * @param {(text: string) => void} optionen.sage  Ansage für Screenreader
  */
 export function erstelleLobby({ sende, sage }) {
-  const bereich        = document.querySelector('#lobby');
-  const nameAnzeige    = document.querySelector('#lobby-name');
-  const meldung        = document.querySelector('#lobby-meldung');
-  const schlangeKnopf  = document.querySelector('#warteschlange-knopf');
+  const bereich = document.querySelector('#lobby');
+  const nameAnzeige = document.querySelector('#lobby-name');
+  const meldung = document.querySelector('#lobby-meldung');
+  const schlangeKnopf = document.querySelector('#warteschlange-knopf');
   const erstellenKnopf = document.querySelector('#lobby-erstellen-knopf');
-  const raeumeTitel    = document.querySelector('#raeume-titel');
-  const raeumeAnzahl   = document.querySelector('#raeume-anzahl');
-  const raeumeListe    = document.querySelector('#raeume-liste');
-  const raeumeLeer     = document.querySelector('#raeume-leer');
-  const raeumeKeine    = document.querySelector('#raeume-keine');
-  const filterBereich  = document.querySelector('#raeume-filter');
-  const suche          = document.querySelector('#lobby-suche');
+  const raeumeTitel = document.querySelector('#raeume-titel');
+  const raeumeAnzahl = document.querySelector('#raeume-anzahl');
+  const raeumeListe = document.querySelector('#raeume-liste');
+  const raeumeLeer = document.querySelector('#raeume-leer');
+  const raeumeKeine = document.querySelector('#raeume-keine');
+  const filterBereich = document.querySelector('#raeume-filter');
+  const suche = document.querySelector('#lobby-suche');
 
-  const erstellenDialog    = document.querySelector('#erstellen-dialog');
-  const erstellenFormular  = document.querySelector('#erstellen-formular');
+  const erstellenDialog = document.querySelector('#erstellen-dialog');
+  const erstellenFormular = document.querySelector('#erstellen-formular');
   const erstellenAbbrechen = document.querySelector('#erstellen-abbrechen');
-  const neuesPasswort      = document.querySelector('#feld-neues-passwort');
-  const neuesAnzeigen      = document.querySelector('#neues-passwort-anzeigen');
-  const neuesFeld = passwortFeld(neuesPasswort,
+  const neuesPasswort = document.querySelector('#feld-neues-passwort');
+  const neuesAnzeigen = document.querySelector('#neues-passwort-anzeigen');
+  const neuesFeld = passwortFeld(
+    neuesPasswort,
     document.querySelector('#feld-neues-passwort-hinweis'),
-    document.querySelector('#feld-neues-passwort-fehler'));
+    document.querySelector('#feld-neues-passwort-fehler'),
+  );
 
-  const beitretenDialog    = document.querySelector('#beitreten-dialog');
-  const beitretenTitel     = document.querySelector('#beitreten-titel');
-  const beitretenInfo      = document.querySelector('#beitreten-info');
-  const beitretenFormular  = document.querySelector('#beitreten-formular');
+  const beitretenDialog = document.querySelector('#beitreten-dialog');
+  const beitretenTitel = document.querySelector('#beitreten-titel');
+  const beitretenInfo = document.querySelector('#beitreten-info');
+  const beitretenFormular = document.querySelector('#beitreten-formular');
   const beitretenAbbrechen = document.querySelector('#beitreten-abbrechen');
-  const beitretenKnopf     = document.querySelector('#beitreten-knopf');
-  const passwort           = document.querySelector('#feld-passwort');
-  const passwortAnzeigen   = document.querySelector('#passwort-anzeigen');
-  const beitrittsFeld = passwortFeld(passwort,
+  const beitretenKnopf = document.querySelector('#beitreten-knopf');
+  const passwort = document.querySelector('#feld-passwort');
+  const passwortAnzeigen = document.querySelector('#passwort-anzeigen');
+  const beitrittsFeld = passwortFeld(
+    passwort,
     document.querySelector('#feld-passwort-hinweis'),
-    document.querySelector('#feld-passwort-fehler'));
+    document.querySelector('#feld-passwort-fehler'),
+  );
 
-  const eigeneDialog      = document.querySelector('#eigene-lobby-dialog');
-  const eigeneInfo        = document.querySelector('#eigene-lobby-info');
-  const schliessenKnopf   = document.querySelector('#lobby-schliessen-knopf');
-  const schlangeDialog    = document.querySelector('#schlange-dialog');
-  const schlangeInfo      = document.querySelector('#schlange-info');
-  const verlassenKnopf    = document.querySelector('#schlange-verlassen-knopf');
+  const eigeneDialog = document.querySelector('#eigene-lobby-dialog');
+  const eigeneInfo = document.querySelector('#eigene-lobby-info');
+  const schliessenKnopf = document.querySelector('#lobby-schliessen-knopf');
+  const schlangeDialog = document.querySelector('#schlange-dialog');
+  const schlangeInfo = document.querySelector('#schlange-info');
+  const verlassenKnopf = document.querySelector('#schlange-verlassen-knopf');
 
   /** Worauf der Spieler gerade wartet: null, 'schlange' oder 'eigeneLobby'. */
   let wartetAuf = null;
@@ -182,10 +230,10 @@ export function erstelleLobby({ sende, sage }) {
   /** Die Lobby, deren Beitreten-Dialog offen ist - oder null. */
   let gewaehlteLobby = null;
 
-  /** Der "Beitreten"-Knopf, der den Dialog geoeffnet hat. */
+  /** Der "Beitreten"-Knopf, der den Dialog geöffnet hat. */
   let beitretenOeffner = null;
 
-  /** Wartet, bis der Spieler kurz aufhoert zu tippen, bevor angesagt wird. */
+  /** Wartet, bis der Spieler kurz aufhört zu tippen, bevor angesagt wird. */
   let suchAnsageTimer;
 
   haltOffen(schlangeDialog, () => wartetAuf === 'schlange');
@@ -200,28 +248,30 @@ export function erstelleLobby({ sende, sage }) {
   function baueRaum({ id, erstellerName, modus, zugzeit }) {
     const raum = ausVorlage('#vorlage-raum');
     raum.dataset.lobbyId = id;
-    raum.dataset.name = erstellerName.toLowerCase(); // fuer die Suche
-    raum.dataset.modus = modus;                      // fuer den Modus-Filter
+    raum.dataset.name = erstellerName.toLowerCase(); // für die Suche
+    raum.dataset.modus = modus; // für den Modus-Filter
     raum.querySelector('.raum__zeichen').textContent = [...erstellerName][0]?.toUpperCase() ?? '?';
     raum.querySelector('.raum__name').textContent = `Lobby von ${erstellerName}`;
 
     const knopf = raum.querySelector('.raum__knopf');
     raum.querySelector('.raum__plaketten').append(plakette(modus), zeitPlakette(zugzeit));
-    // Der sichtbare Text "Beitreten" steht vorne, die Ergaenzung fuer den
+    // Der sichtbare Text "Beitreten" steht vorne, die Ergänzung für den
     // Screenreader dahinter - so funktioniert auch Sprachsteuerung
     // ("Klicke Beitreten"), WCAG 2.5.3.
     knopf.querySelector('.nur-sr').textContent =
       ` – Lobby von ${erstellerName}, Modus ${MODUSNAMEN[modus]}, ${zeitLang(zugzeit)}`;
-    knopf.addEventListener('click', () => oeffneBeitreten({ id, erstellerName, modus, zugzeit }, knopf));
+    knopf.addEventListener('click', () =>
+      oeffneBeitreten({ id, erstellerName, modus, zugzeit }, knopf),
+    );
     return raum;
   }
 
   /**
-   * Zeichnet die Liste - ohne die vorhandenen Eintraege neu zu bauen.
+   * Zeichnet die Liste - ohne die vorhandenen Einträge neu zu bauen.
    *
-   * Nur verschwundene Lobbys werden entfernt und neue eingefuegt. Wuerde man
+   * Nur verschwundene Lobbys werden entfernt und neue eingefügt. Würde man
    * die ganze Liste neu bauen, liefe die Einblend-Animation bei jeder
-   * Aenderung fuer ALLE Eintraege, und der Fokus ginge jedes Mal verloren.
+   * Änderung für ALLE Einträge, und der Fokus ginge jedes Mal verloren.
    */
   function setzeListe(liste) {
     const ids = new Set(liste.map((lobby) => lobby.id));
@@ -231,9 +281,11 @@ export function erstelleLobby({ sende, sage }) {
       if (!ids.has(raum.dataset.lobbyId)) raum.remove();
     }
 
-    // Die Liste kommt neueste zuerst. Vorhandene Eintraege behalten ihre
+    // Die Liste kommt neueste zuerst. Vorhandene Einträge behalten ihre
     // Reihenfolge, neue kommen an ihre Stelle.
-    const vorhandene = new Map([...raeumeListe.children].map((raum) => [raum.dataset.lobbyId, raum]));
+    const vorhandene = new Map(
+      [...raeumeListe.children].map((raum) => [raum.dataset.lobbyId, raum]),
+    );
     liste.forEach((lobby, stelle) => {
       if (!vorhandene.has(lobby.id)) {
         raeumeListe.insertBefore(baueRaum(lobby), raeumeListe.children[stelle] ?? null);
@@ -242,36 +294,37 @@ export function erstelleLobby({ sende, sage }) {
 
     wendeFilterAn();
 
-    // Stand der Fokus auf einer Lobby, die es nicht mehr gibt, faellt er auf
-    // die Ueberschrift - statt unbemerkt auf der ganzen Seite zu landen.
+    // Stand der Fokus auf einer Lobby, die es nicht mehr gibt, fällt er auf
+    // die Überschrift - statt unbemerkt auf der ganzen Seite zu landen.
     if (fokusRaum && !fokusRaum.isConnected) raeumeTitel.focus();
 
     // Die Lobby im offenen Beitreten-Dialog ist verschwunden.
     if (gewaehlteLobby && !ids.has(gewaehlteLobby.id) && beitretenDialog.open) {
       sperreBeitreten(beitrittsFehler('weg'));
     }
-    // Aenderungen der Liste werden bewusst NICHT angesagt - das waere Laerm.
+    // Änderungen der Liste werden bewusst NICHT angesagt - das wäre Lärm.
   }
 
   // --- Suche und Modus-Filter --------------------------------------------
 
   /**
-   * Blendet alle Eintraege aus, die nicht zu Suche UND Modus-Filter passen,
-   * und zaehlt mit.
+   * Blendet alle Einträge aus, die nicht zu Suche UND Modus-Filter passen,
+   * und zählt mit.
    *
    * Gefiltert wird nur im Browser: Der Server schickt ohnehin die ganze
-   * Liste, und bei hoechstens 50 Lobbys ist das sofort erledigt. Die
-   * Eintraege bleiben dabei im Dokument - "hidden" blendet sie nur aus.
+   * Liste, und bei höchstens 50 Lobbys ist das sofort erledigt. Die
+   * Einträge bleiben dabei im Dokument - "hidden" blendet sie nur aus.
    */
   function wendeFilterAn() {
     const suchtext = suche.value.trim().toLowerCase();
-    const modus = filterBereich.querySelector('input[name="lobby-filter"]:checked')?.value ?? 'alle';
+    const modus =
+      filterBereich.querySelector('input[name="lobby-filter"]:checked')?.value ?? 'alle';
     const raeume = [...raeumeListe.children];
     let sichtbar = 0;
 
     for (const raum of raeume) {
-      const passt = raum.dataset.name.includes(suchtext)
-        && (modus === 'alle' || raum.dataset.modus === modus);
+      const passt =
+        raum.dataset.name.includes(suchtext) && (modus === 'alle' || raum.dataset.modus === modus);
       raum.hidden = !passt;
       if (passt) sichtbar += 1;
     }
@@ -287,10 +340,10 @@ export function erstelleLobby({ sende, sage }) {
     return sichtbar;
   }
 
-  /** Suche oder Filter geaendert: neu filtern und (verzoegert) ansagen. */
+  /** Suche oder Filter geändert: neu filtern und (verzögert) ansagen. */
   function filterGeaendert() {
     const sichtbar = wendeFilterAn();
-    // Erst ansagen, wenn das Tippen kurz pausiert - sonst haette jeder
+    // Erst ansagen, wenn das Tippen kurz pausiert - sonst hätte jeder
     // Buchstabe seine eigene Ansage.
     clearTimeout(suchAnsageTimer);
     suchAnsageTimer = setTimeout(() => {
@@ -299,7 +352,7 @@ export function erstelleLobby({ sende, sage }) {
   }
 
   suche.addEventListener('input', filterGeaendert);
-  // "change" kommt bei Radio-Knoepfen erst, wenn wirklich gewechselt wurde.
+  // "change" kommt bei Radio-Knöpfen erst, wenn wirklich gewechselt wurde.
   filterBereich.addEventListener('change', (ereignis) => {
     if (ereignis.target.name === 'lobby-filter') filterGeaendert();
   });
@@ -322,7 +375,7 @@ export function erstelleLobby({ sende, sage }) {
 
   verlassenKnopf.addEventListener('click', () => {
     wartetAuf = null;
-    schlangeDialog.close(); // der Fokus kehrt zu "Warteschlange betreten" zurueck
+    schlangeDialog.close(); // der Fokus kehrt zu "Warteschlange betreten" zurück
     sende('warteschlangeVerlassen');
   });
 
@@ -341,7 +394,7 @@ export function erstelleLobby({ sende, sage }) {
   erstellenFormular.addEventListener('submit', (ereignis) => {
     ereignis.preventDefault();
 
-    // Geprueft wird erst beim Absenden, nicht bei jedem Tastendruck.
+    // Geprüft wird erst beim Absenden, nicht bei jedem Tastendruck.
     const laenge = neuesPasswort.value.length;
     if (laenge < MIN_PASSWORTLAENGE || laenge > MAX_PASSWORTLAENGE) {
       zeigeErstellFehler(`Das Passwort braucht mindestens ${MIN_PASSWORTLAENGE} Zeichen.`);
@@ -368,8 +421,13 @@ export function erstelleLobby({ sende, sage }) {
     erstellenFormular.reset(); // das Passwort bleibt nicht im Formular stehen
     erstellenDialog.close();
 
-    eigeneInfo.replaceChildren(plakette(modus), zeitPlakette(zugzeit), ' ',
-      ausVorlage('#vorlage-schloss'), ' Passwort gesetzt');
+    eigeneInfo.replaceChildren(
+      plakette(modus),
+      zeitPlakette(zugzeit),
+      ' ',
+      ausVorlage('#vorlage-schloss'),
+      ' Passwort gesetzt',
+    );
     wartetAuf = 'eigeneLobby';
     eigeneDialog.showModal();
     sage('Lobby erstellt. Warte auf Mitspieler.');
@@ -382,8 +440,8 @@ export function erstelleLobby({ sende, sage }) {
   schliessenKnopf.addEventListener('click', () => {
     wartetAuf = null;
     eigeneDialog.close();
-    // Der Knopf, der den Wartedialog "geoeffnet" hat, sass im Formular, das
-    // schon zu ist - deshalb den Fokus selbst zurueckgeben.
+    // Der Knopf, der den Wartedialog "geöffnet" hat, saß im Formular, das
+    // schon zu ist - deshalb den Fokus selbst zurückgeben.
     erstellenKnopf.focus();
     sende('lobbySchliessen');
   });
@@ -396,8 +454,11 @@ export function erstelleLobby({ sende, sage }) {
     beitretenOeffner = knopf;
 
     beitretenTitel.textContent = `Lobby von ${lobby.erstellerName}`;
-    beitretenInfo.replaceChildren(plakette(lobby.modus), zeitPlakette(lobby.zugzeit),
-      ` ${lobby.erstellerName} wartet auf einen Mitspieler.`);
+    beitretenInfo.replaceChildren(
+      plakette(lobby.modus),
+      zeitPlakette(lobby.zugzeit),
+      ` ${lobby.erstellerName} wartet auf einen Mitspieler.`,
+    );
 
     beitretenFormular.reset();
     beitrittsFeld.loescheFehler();
@@ -412,8 +473,8 @@ export function erstelleLobby({ sende, sage }) {
 
   beitretenDialog.addEventListener('close', () => {
     gewaehlteLobby = null;
-    // Ist der Knopf, der den Dialog geoeffnet hat, inzwischen verschwunden
-    // (Lobby weg), geht der Fokus auf die Ueberschrift der Liste.
+    // Ist der Knopf, der den Dialog geöffnet hat, inzwischen verschwunden
+    // (Lobby weg), geht der Fokus auf die Überschrift der Liste.
     if (beitretenOeffner && !beitretenOeffner.isConnected && !bereich.hidden) raeumeTitel.focus();
     beitretenOeffner = null;
   });
@@ -432,7 +493,7 @@ export function erstelleLobby({ sende, sage }) {
   });
 
   function zeigeBeitrittsFehler(text) {
-    beitrittsFeld.zeigeFehler(text); // das Feld bleibt gefuellt
+    beitrittsFeld.zeigeFehler(text); // das Feld bleibt gefüllt
     passwort.focus();
     sage(text);
   }
@@ -457,13 +518,13 @@ export function erstelleLobby({ sende, sage }) {
 
   // --- Ein- und Ausblenden ------------------------------------------------
 
-  /** Zeigt eine Meldung ueber der Lobby - oder blendet sie mit '' aus. */
+  /** Zeigt eine Meldung über der Lobby - oder blendet sie mit '' aus. */
   function zeigeMeldung(text) {
     meldung.textContent = text;
     meldung.hidden = text === '';
   }
 
-  /** Schliesst alle Lobby-Dialoge, ohne dass einer sich wieder oeffnet. */
+  /** Schließt alle Lobby-Dialoge, ohne dass einer sich wieder öffnet. */
   function schliesseDialoge() {
     wartetAuf = null;
     for (const dialog of [erstellenDialog, beitretenDialog, eigeneDialog, schlangeDialog]) {

@@ -1,7 +1,7 @@
 /**
  * Tests des Duell-Fortschritts (public/js/fortschritt.js).
  *
- * Das Modul greift nicht auf das Dokument zu - deshalb laeuft es hier ohne
+ * Das Modul greift nicht auf das Dokument zu - deshalb läuft es hier ohne
  * Browser. Die Tipps sind so aufgebaut wie die Nachricht "zug" vom Server.
  */
 
@@ -9,7 +9,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  EIGENSCHAFTEN, STUFENTEXT, geknackt, gefahrenstufe, meilenstein, aufzaehlung, fehlende,
+  EIGENSCHAFTEN,
+  STUFENTEXT,
+  geknackt,
+  gefahrenstufe,
+  meilenstein,
+  aufzaehlung,
+  fehlende,
 } from '../public/js/fortschritt.js';
 import { KATEGORIEN } from '../server/spiel.js';
 
@@ -26,7 +32,10 @@ function tipp(...treffer) {
 const menge = (...schluessel) => new Set(schluessel);
 
 test('die Eigenschaften passen genau zu den Kategorien des Servers', () => {
-  assert.deepEqual(EIGENSCHAFTEN.map((e) => e.schluessel), KATEGORIEN.map((k) => k.schluessel));
+  assert.deepEqual(
+    EIGENSCHAFTEN.map((e) => e.schluessel),
+    KATEGORIEN.map((k) => k.schluessel),
+  );
 });
 
 // --------------------------------------------------------------------------
@@ -73,7 +82,12 @@ test('gefahrenstufe: Grenze 6/7 - bei 7 kurz vorm Ziel', () => {
 });
 
 test('jede Stufe hat ein Wort fuer die Anzeige', () => {
-  assert.deepEqual(STUFENTEXT, { kalt: 'kalt', warm: 'warm', heiss: 'heiß', gleich: 'kurz vorm Ziel!' });
+  assert.deepEqual(STUFENTEXT, {
+    kalt: 'kalt',
+    warm: 'warm',
+    heiss: 'heiß',
+    gleich: 'kurz vorm Ziel!',
+  });
 });
 
 // --------------------------------------------------------------------------
@@ -94,12 +108,20 @@ test('meilenstein: eine neue Eigenschaft, mit richtigem Artikel', () => {
 
 test('meilenstein: alle sieben Artikel stimmen', () => {
   const erwartet = {
-    klasse: 'die Klasse', lebensraum: 'den Lebensraum', ernaehrung: 'die Ernährung',
-    gewichtKg: 'das Gewicht', groesseCm: 'die Größe', alterJahre: 'das Alter',
+    klasse: 'die Klasse',
+    lebensraum: 'den Lebensraum',
+    ernaehrung: 'die Ernährung',
+    gewichtKg: 'das Gewicht',
+    groesseCm: 'die Größe',
+    alterJahre: 'das Alter',
     aktivitaet: 'die Aktivitätszeit',
   };
   for (const [schluessel, imSatz] of Object.entries(erwartet)) {
-    assert.match(meilenstein(menge(), menge(schluessel), 'Lena'), new RegExp(`^Lena hat ${imSatz} geknackt`), schluessel);
+    assert.match(
+      meilenstein(menge(), menge(schluessel), 'Lena'),
+      new RegExp(`^Lena hat ${imSatz} geknackt`),
+      schluessel,
+    );
   }
 });
 
@@ -146,7 +168,10 @@ test('meilenstein: innerhalb derselben Stufe kein Zusatzsatz', () => {
   // 5 -> 6 bleibt heiss
   const vorher = menge('klasse', 'lebensraum', 'ernaehrung', 'alterJahre', 'aktivitaet');
   const nachher = new Set([...vorher, 'gewichtKg']);
-  assert.equal(meilenstein(vorher, nachher, 'Lena'), 'Lena hat das Gewicht geknackt – jetzt 6 von 7!');
+  assert.equal(
+    meilenstein(vorher, nachher, 'Lena'),
+    'Lena hat das Gewicht geknackt – jetzt 6 von 7!',
+  );
 });
 
 test('meilenstein: auf warm gibt es keinen Zusatzsatz', () => {
@@ -157,7 +182,7 @@ test('meilenstein: auf warm gibt es keinen Zusatzsatz', () => {
 });
 
 // --------------------------------------------------------------------------
-// Hilfen fuer das Fazit
+// Hilfen für das Fazit
 // --------------------------------------------------------------------------
 
 test('aufzaehlung: ein, zwei und drei Woerter', () => {

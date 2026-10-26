@@ -2,11 +2,11 @@
  * Tests der Vorschlagsliste im Eingabefeld.
  *
  * Getestet wird nur sucheTiere() - die reine Suchfunktion ohne DOM-Zugriff.
- * Sie entscheidet, welches Tier Enter auswaehlt (immer der erste Eintrag),
+ * Sie entscheidet, welches Tier Enter auswählt (immer der erste Eintrag),
  * und genau daran sind schon Tipps daneben gegangen: "Bär" traf Ameisenbär,
  * "Fuchs" traf Polarfuchs.
  *
- * Als Datenbasis dient die echte Tierliste - so faellt auch auf, wenn ein
+ * Als Datenbasis dient die echte Tierliste - so fällt auch auf, wenn ein
  * neu aufgenommenes Tier eine Reihenfolge durcheinanderbringt.
  */
 
@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 import { SUCH_TIERE } from '../server/tierdaten.js';
 import { sucheTiere, beschriftung, MAX_TREFFER } from '../public/js/vorschlaege.js';
 
-/** Liefert nur die Namen der Vorschlaege - das macht die Tests lesbar. */
+/** Liefert nur die Namen der Vorschläge - das macht die Tests lesbar. */
 function namen(eingabe) {
   return sucheTiere(SUCH_TIERE, eingabe).treffer.map((eintrag) => eintrag.tier.name);
 }
@@ -39,8 +39,8 @@ test('der exakte Treffer schlaegt den laengeren Namen', () => {
 });
 
 test('"Bär" schlaegt echte Baeren vor dem Ameisenbaeren vor', () => {
-  // Kein Tier heisst nur "Bär". Entscheidend ist dann, wo im Namen der
-  // Suchtext steckt: bei Eisbär und Braunbär frueher als beim Ameisenbaeren.
+  // Kein Tier heißt nur "Bär". Entscheidend ist dann, wo im Namen der
+  // Suchtext steckt: bei Eisbär und Braunbär früher als beim Ameisenbären.
   assert.ok(platz('Bär', 'Braunbär') < platz('Bär', 'Ameisenbär'));
   assert.ok(platz('Bär', 'Eisbär') < platz('Bär', 'Ameisenbär'));
 });
@@ -63,14 +63,14 @@ test('die Kategoriesuche liefert alle Saeugetiere', () => {
 
   assert.equal(saeugetiere.length, 81, 'die Tierliste hat sich geaendert');
   assert.equal(gefunden.length, saeugetiere.length);
-  // Genau die Tiere, die frueher an der Grenze von 60 abgeschnitten wurden.
+  // Diese Tiere stehen weit hinten - eine zu kleine Grenze schnitte sie ab.
   for (const name of ['Schneeleopard', 'Tiger', 'Wolf', 'Zebra']) {
     assert.ok(gefunden.includes(name), `"${name}" fehlt`);
   }
 });
 
 test('die Obergrenze liegt ueber der gesamten Tierliste', () => {
-  // Sonst koennte eine Kategoriesuche wieder Tiere verschlucken.
+  // Sonst könnte eine Kategoriesuche wieder Tiere verschlucken.
   assert.ok(MAX_TREFFER > SUCH_TIERE.length, `${MAX_TREFFER} <= ${SUCH_TIERE.length}`);
   assert.equal(sucheTiere(SUCH_TIERE, 'Säugetier').gesamt, 81);
 });
@@ -92,18 +92,20 @@ test('ein unbekannter Suchtext liefert keine Vorschlaege', () => {
 });
 
 // --------------------------------------------------------------------------
-// Beschriftung der Vorschlaege
+// Beschriftung der Vorschläge
 // --------------------------------------------------------------------------
 
 /** Liefert Name und Zusatztext, so wie sie nebeneinander in der Liste stehen. */
 function zeilen(eingabe) {
-  return sucheTiere(SUCH_TIERE, eingabe).treffer
-    .map((eintrag) => [eintrag.tier.name, beschriftung(eintrag.tier, eintrag.grund)]);
+  return sucheTiere(SUCH_TIERE, eingabe).treffer.map((eintrag) => [
+    eintrag.tier.name,
+    beschriftung(eintrag.tier, eintrag.grund),
+  ]);
 }
 
 test('jeder Vorschlag nennt die Tierklasse', () => {
-  // Frueher blieb die Zeile bei einer Namenssuche leer - man sah nicht, ob
-  // Braunbaer und Ameisenbaer ueberhaupt zur selben Klasse gehoeren.
+  // Auch bei einer Namenssuche - sonst sähe man nicht, ob Braunbär und
+  // Ameisenbär überhaupt zur selben Klasse gehören.
   for (const [name, zusatz] of zeilen('Bär')) {
     assert.equal(zusatz, 'Säugetier', name);
   }

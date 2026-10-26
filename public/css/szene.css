@@ -1,80 +1,86 @@
 /* ==========================================================================
    Lebensraum-Szene - der Hintergrund der Seite
    --------------------------------------------------------------------------
-   Vier Baender von oben nach unten: Luft, Regenwald, Wald mit Boden, Meer.
-   Alles ist reines CSS: Farbverlaeufe plus ein paar Tiersilhouetten als
+   Vier Bänder von oben nach unten: Luft, Regenwald, Wald mit Boden, Meer.
+   Alles ist reines CSS: Farbverläufe plus ein paar Tiersilhouetten als
    eingebettete SVG. Keine Bilddateien, nichts nachzuladen.
 
-   WICHTIG fuers Spiel: Die Szene zeigt IMMER alle Lebensraeume. Sie richtet
-   sich NICHT nach dem gesuchten Tier - das waere ein Hinweis auf die Loesung
-   und wuerde den Sinn des Spiels aushebeln.
+   WICHTIG fürs Spiel: Die Szene zeigt IMMER alle Lebensräume. Sie richtet
+   sich NICHT nach dem gesuchten Tier - das wäre ein Hinweis auf die Lösung
+   und würde den Sinn des Spiels aushebeln.
 
-   Alle Farbwerte stehen in tokens.css, auch --papier und die Baender der
+   Alle Farbwerte stehen in tokens.css, auch --papier und die Bänder der
    Szene. Diese Datei legt nur fest, WO etwas liegt.
 
    Die einzige Ausnahme sind die Tiersilhouetten weiter unten: Sie stecken als
-   SVG in einer data-URL, und eine data-URL ist fuer den Browser eine einzige
+   SVG in einer data-URL, und eine data-URL ist für den Browser eine einzige
    Zeichenkette - var() wird darin nicht ersetzt. Ihre Farben lassen sich
    deshalb nicht auslagern.
    ========================================================================== */
 
 @layer szene {
-
   body {
     background: var(--luft-unten);
 
     /* Die Szene liegt fest hinter dem Inhalt und scrollt nicht mit - dadurch
-       bleibt die Anordnung der Baender unabhaengig von der Seitenlaenge. */
+       bleibt die Anordnung der Bänder unabhängig von der Seitenlänge. */
     &::before {
-      content: "";
+      content: '';
       position: fixed;
       inset: 0;
       z-index: -1;
       pointer-events: none;
       background-image:
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20170%2070%22%20width%3D%22170%22%20height%3D%2270%22%3E%3Cpath%20d%3D%22M10%2040%20q8.0%20-8.8%2016%200%20q8.0%20-8.8%2016%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222.56%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M58%2022%20q5.5%20-6.050000000000001%2011%200%20q5.5%20-6.050000000000001%2011%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%221.76%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M92%2052%20q6.5%20-7.15%2013%200%20q6.5%20-7.15%2013%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.38%22%20stroke-width%3D%222.08%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M140%2030%20q4.5%20-4.95%209%200%20q4.5%20-4.95%209%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.28%22%20stroke-width%3D%221.44%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2030%22%20width%3D%2260%22%20height%3D%2250%22%3E%3Cg%20fill%3D%22%23b8551f%22%20fill-opacity%3D%220.52%22%3E%3Cellipse%20cx%3D%2211%22%20cy%3D%229%22%20%20rx%3D%229%22%20ry%3D%227%22%20transform%3D%22rotate%28-24%2011%209%29%22%2F%3E%3Cellipse%20cx%3D%2225%22%20cy%3D%229%22%20%20rx%3D%229%22%20ry%3D%227%22%20transform%3D%22rotate%2824%2025%209%29%22%2F%3E%3Cellipse%20cx%3D%2213%22%20cy%3D%2220%22%20rx%3D%226%22%20ry%3D%225%22%20transform%3D%22rotate%28-14%2013%2020%29%22%2F%3E%3Cellipse%20cx%3D%2223%22%20cy%3D%2220%22%20rx%3D%226%22%20ry%3D%225%22%20transform%3D%22rotate%2814%2023%2020%29%22%2F%3E%3Crect%20x%3D%2217%22%20y%3D%225%22%20width%3D%222.4%22%20height%3D%2219%22%20rx%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M17%206%20q-5%20-5%20-8%20-6%20M21%206%20q5%20-5%208%20-6%22%20fill%3D%22none%22%20stroke%3D%22%23b8551f%22%20stroke-opacity%3D%220.52%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2030%20170%22%20width%3D%2230%22%20height%3D%22170%22%3E%3Cpath%20d%3D%22M14%200%20C4%2030%2024%2060%2014%2092%20C6%20118%2020%20140%2014%20168%22%20fill%3D%22none%22%20stroke%3D%22%233f5e38%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%223%22%2F%3E%3Cg%20fill%3D%22%233f5e38%22%20fill-opacity%3D%220.45%22%3E%3Cellipse%20cx%3D%2224%22%20cy%3D%2234%22%20rx%3D%2211%22%20ry%3D%226%22%20transform%3D%22rotate%28-18%2024%2034%29%22%2F%3E%3Cellipse%20cx%3D%224%22%20%20cy%3D%2274%22%20rx%3D%2211%22%20ry%3D%226%22%20transform%3D%22rotate%2818%204%2074%29%22%2F%3E%3Cellipse%20cx%3D%2225%22%20cy%3D%22120%22%20rx%3D%2210%22%20ry%3D%226%22%20transform%3D%22rotate%28-14%2025%20120%29%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20500%20100%22%20width%3D%22500%22%20height%3D%22100%22%3E%3Cg%20fill%3D%22%23659149%22%20fill-opacity%3D%220.6%22%3E%3Ccircle%20cx%3D%22-20%22%20cy%3D%2257.4%22%20r%3D%2236%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2259.5%22%20r%3D%2230%22%2F%3E%3Ccircle%20cx%3D%2248%22%20cy%3D%2256.7%22%20r%3D%2238%22%2F%3E%3Ccircle%20cx%3D%2287%22%20cy%3D%2253.900000000000006%22%20r%3D%2246%22%2F%3E%3Ccircle%20cx%3D%22135%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2260.2%22%20r%3D%2228%22%2F%3E%3Ccircle%20cx%3D%22192%22%20cy%3D%2251.8%22%20r%3D%2252%22%2F%3E%3Ccircle%20cx%3D%22246%22%20cy%3D%2254.95%22%20r%3D%2243%22%2F%3E%3Ccircle%20cx%3D%22291%22%20cy%3D%2259.85%22%20r%3D%2229%22%2F%3E%3Ccircle%20cx%3D%22321%22%20cy%3D%2257.05%22%20r%3D%2237%22%2F%3E%3Ccircle%20cx%3D%22359%22%20cy%3D%2254.6%22%20r%3D%2244%22%2F%3E%3Ccircle%20cx%3D%22405%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22433%22%20cy%3D%2255.3%22%20r%3D%2242%22%2F%3E%3Ccircle%20cx%3D%22477%22%20cy%3D%2258.8%22%20r%3D%2232%22%2F%3E%3Ccircle%20cx%3D%22510%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2262%22%20width%3D%22500%22%20height%3D%2240%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20500%20120%22%20width%3D%22500%22%20height%3D%22120%22%3E%3Cg%20fill%3D%22%23395a31%22%20fill-opacity%3D%220.8%22%3E%3Ccircle%20cx%3D%22-20%22%20cy%3D%2277.4%22%20r%3D%2236%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2279.5%22%20r%3D%2230%22%2F%3E%3Ccircle%20cx%3D%2248%22%20cy%3D%2276.7%22%20r%3D%2238%22%2F%3E%3Ccircle%20cx%3D%2287%22%20cy%3D%2273.9%22%20r%3D%2246%22%2F%3E%3Ccircle%20cx%3D%22135%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2280.2%22%20r%3D%2228%22%2F%3E%3Ccircle%20cx%3D%22192%22%20cy%3D%2271.8%22%20r%3D%2252%22%2F%3E%3Ccircle%20cx%3D%22246%22%20cy%3D%2274.95%22%20r%3D%2243%22%2F%3E%3Ccircle%20cx%3D%22291%22%20cy%3D%2279.85%22%20r%3D%2229%22%2F%3E%3Ccircle%20cx%3D%22321%22%20cy%3D%2277.05%22%20r%3D%2237%22%2F%3E%3Ccircle%20cx%3D%22359%22%20cy%3D%2274.6%22%20r%3D%2244%22%2F%3E%3Ccircle%20cx%3D%22405%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22433%22%20cy%3D%2275.3%22%20r%3D%2242%22%2F%3E%3Ccircle%20cx%3D%22477%22%20cy%3D%2278.8%22%20r%3D%2232%22%2F%3E%3Ccircle%20cx%3D%22510%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2282%22%20width%3D%22500%22%20height%3D%2240%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2046%22%20width%3D%2280%22%20height%3D%2246%22%3E%3Cpath%20d%3D%22M8%2030%20q6.0%20-6.6000000000000005%2012%200%20q6.0%20-6.6000000000000005%2012%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%221.92%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M50%2014%20q4.5%20-4.95%209%200%20q4.5%20-4.95%209%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.26%22%20stroke-width%3D%221.44%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20170%2084%22%20width%3D%22170%22%20height%3D%2284%22%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.42%22%20transform%3D%22translate%2838%2030%29%20scale%281%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%2215%22%20ry%3D%227.800000000000001%22%2F%3E%3Cpath%20d%3D%22M-13.5%200%20l-11.25%20-9.0%20l0%2018.0%20z%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.32%22%20transform%3D%22translate%2896%2058%29%20scale%28-1%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%2210%22%20ry%3D%225.2%22%2F%3E%3Cpath%20d%3D%22M-9.0%200%20l-7.5%20-6.0%20l0%2012.0%20z%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.26%22%20transform%3D%22translate%28140%2022%29%20scale%281%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%228%22%20ry%3D%224.16%22%2F%3E%3Cpath%20d%3D%22M-7.2%200%20l-6.0%20-4.8%20l0%209.6%20z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2052%22%20width%3D%2248%22%20height%3D%2252%22%3E%3Cg%20fill%3D%22%235a90a6%22%20fill-opacity%3D%220.34%22%3E%3Cpath%20d%3D%22M4%2022%20C4%2010%2014%202%2024%202%20C34%202%2044%2010%2044%2022%20C34%2027%2014%2027%204%2022%20Z%22%2F%3E%3Cpath%20d%3D%22M11%2024%20q2%2014%20-2%2022%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M24%2025%20q3%2016%200%2024%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M37%2024%20q-2%2014%202%2022%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-        url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20180%2066%22%20width%3D%22180%22%20height%3D%2266%22%3E%3Cg%20fill%3D%22%2327556c%22%20fill-opacity%3D%220.3%22%3E%3Cpath%20d%3D%22M18%2046%20C18%2022%2052%208%2096%208%20C140%208%20168%2022%20176%2040%20C150%2058%2060%2062%2018%2046%20Z%22%2F%3E%3Cpath%20d%3D%22M18%2046%20C8%2042%204%2026%202%2012%20C14%2018%2022%2030%2026%2040%20Z%22%2F%3E%3Cpath%20d%3D%22M96%208%20C96%202%20104%200%20108%202%20C104%204%20100%206%2098%2010%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20170%2070%22%20width%3D%22170%22%20height%3D%2270%22%3E%3Cpath%20d%3D%22M10%2040%20q8.0%20-8.8%2016%200%20q8.0%20-8.8%2016%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222.56%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M58%2022%20q5.5%20-6.050000000000001%2011%200%20q5.5%20-6.050000000000001%2011%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%221.76%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M92%2052%20q6.5%20-7.15%2013%200%20q6.5%20-7.15%2013%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.38%22%20stroke-width%3D%222.08%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M140%2030%20q4.5%20-4.95%209%200%20q4.5%20-4.95%209%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.28%22%20stroke-width%3D%221.44%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2030%22%20width%3D%2260%22%20height%3D%2250%22%3E%3Cg%20fill%3D%22%23b8551f%22%20fill-opacity%3D%220.52%22%3E%3Cellipse%20cx%3D%2211%22%20cy%3D%229%22%20%20rx%3D%229%22%20ry%3D%227%22%20transform%3D%22rotate%28-24%2011%209%29%22%2F%3E%3Cellipse%20cx%3D%2225%22%20cy%3D%229%22%20%20rx%3D%229%22%20ry%3D%227%22%20transform%3D%22rotate%2824%2025%209%29%22%2F%3E%3Cellipse%20cx%3D%2213%22%20cy%3D%2220%22%20rx%3D%226%22%20ry%3D%225%22%20transform%3D%22rotate%28-14%2013%2020%29%22%2F%3E%3Cellipse%20cx%3D%2223%22%20cy%3D%2220%22%20rx%3D%226%22%20ry%3D%225%22%20transform%3D%22rotate%2814%2023%2020%29%22%2F%3E%3Crect%20x%3D%2217%22%20y%3D%225%22%20width%3D%222.4%22%20height%3D%2219%22%20rx%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M17%206%20q-5%20-5%20-8%20-6%20M21%206%20q5%20-5%208%20-6%22%20fill%3D%22none%22%20stroke%3D%22%23b8551f%22%20stroke-opacity%3D%220.52%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2030%20170%22%20width%3D%2230%22%20height%3D%22170%22%3E%3Cpath%20d%3D%22M14%200%20C4%2030%2024%2060%2014%2092%20C6%20118%2020%20140%2014%20168%22%20fill%3D%22none%22%20stroke%3D%22%233f5e38%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%223%22%2F%3E%3Cg%20fill%3D%22%233f5e38%22%20fill-opacity%3D%220.45%22%3E%3Cellipse%20cx%3D%2224%22%20cy%3D%2234%22%20rx%3D%2211%22%20ry%3D%226%22%20transform%3D%22rotate%28-18%2024%2034%29%22%2F%3E%3Cellipse%20cx%3D%224%22%20%20cy%3D%2274%22%20rx%3D%2211%22%20ry%3D%226%22%20transform%3D%22rotate%2818%204%2074%29%22%2F%3E%3Cellipse%20cx%3D%2225%22%20cy%3D%22120%22%20rx%3D%2210%22%20ry%3D%226%22%20transform%3D%22rotate%28-14%2025%20120%29%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20500%20100%22%20width%3D%22500%22%20height%3D%22100%22%3E%3Cg%20fill%3D%22%23659149%22%20fill-opacity%3D%220.6%22%3E%3Ccircle%20cx%3D%22-20%22%20cy%3D%2257.4%22%20r%3D%2236%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2259.5%22%20r%3D%2230%22%2F%3E%3Ccircle%20cx%3D%2248%22%20cy%3D%2256.7%22%20r%3D%2238%22%2F%3E%3Ccircle%20cx%3D%2287%22%20cy%3D%2253.900000000000006%22%20r%3D%2246%22%2F%3E%3Ccircle%20cx%3D%22135%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2260.2%22%20r%3D%2228%22%2F%3E%3Ccircle%20cx%3D%22192%22%20cy%3D%2251.8%22%20r%3D%2252%22%2F%3E%3Ccircle%20cx%3D%22246%22%20cy%3D%2254.95%22%20r%3D%2243%22%2F%3E%3Ccircle%20cx%3D%22291%22%20cy%3D%2259.85%22%20r%3D%2229%22%2F%3E%3Ccircle%20cx%3D%22321%22%20cy%3D%2257.05%22%20r%3D%2237%22%2F%3E%3Ccircle%20cx%3D%22359%22%20cy%3D%2254.6%22%20r%3D%2244%22%2F%3E%3Ccircle%20cx%3D%22405%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22433%22%20cy%3D%2255.3%22%20r%3D%2242%22%2F%3E%3Ccircle%20cx%3D%22477%22%20cy%3D%2258.8%22%20r%3D%2232%22%2F%3E%3Ccircle%20cx%3D%22510%22%20cy%3D%2260.55%22%20r%3D%2227%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2262%22%20width%3D%22500%22%20height%3D%2240%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20500%20120%22%20width%3D%22500%22%20height%3D%22120%22%3E%3Cg%20fill%3D%22%23395a31%22%20fill-opacity%3D%220.8%22%3E%3Ccircle%20cx%3D%22-20%22%20cy%3D%2277.4%22%20r%3D%2236%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2279.5%22%20r%3D%2230%22%2F%3E%3Ccircle%20cx%3D%2248%22%20cy%3D%2276.7%22%20r%3D%2238%22%2F%3E%3Ccircle%20cx%3D%2287%22%20cy%3D%2273.9%22%20r%3D%2246%22%2F%3E%3Ccircle%20cx%3D%22135%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2280.2%22%20r%3D%2228%22%2F%3E%3Ccircle%20cx%3D%22192%22%20cy%3D%2271.8%22%20r%3D%2252%22%2F%3E%3Ccircle%20cx%3D%22246%22%20cy%3D%2274.95%22%20r%3D%2243%22%2F%3E%3Ccircle%20cx%3D%22291%22%20cy%3D%2279.85%22%20r%3D%2229%22%2F%3E%3Ccircle%20cx%3D%22321%22%20cy%3D%2277.05%22%20r%3D%2237%22%2F%3E%3Ccircle%20cx%3D%22359%22%20cy%3D%2274.6%22%20r%3D%2244%22%2F%3E%3Ccircle%20cx%3D%22405%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Ccircle%20cx%3D%22433%22%20cy%3D%2275.3%22%20r%3D%2242%22%2F%3E%3Ccircle%20cx%3D%22477%22%20cy%3D%2278.8%22%20r%3D%2232%22%2F%3E%3Ccircle%20cx%3D%22510%22%20cy%3D%2280.55%22%20r%3D%2227%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2282%22%20width%3D%22500%22%20height%3D%2240%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2046%22%20width%3D%2280%22%20height%3D%2246%22%3E%3Cpath%20d%3D%22M8%2030%20q6.0%20-6.6000000000000005%2012%200%20q6.0%20-6.6000000000000005%2012%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%221.92%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M50%2014%20q4.5%20-4.95%209%200%20q4.5%20-4.95%209%200%22%20fill%3D%22none%22%20stroke%3D%22%2341627a%22%20stroke-opacity%3D%220.26%22%20stroke-width%3D%221.44%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20170%2084%22%20width%3D%22170%22%20height%3D%2284%22%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.42%22%20transform%3D%22translate%2838%2030%29%20scale%281%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%2215%22%20ry%3D%227.800000000000001%22%2F%3E%3Cpath%20d%3D%22M-13.5%200%20l-11.25%20-9.0%20l0%2018.0%20z%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.32%22%20transform%3D%22translate%2896%2058%29%20scale%28-1%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%2210%22%20ry%3D%225.2%22%2F%3E%3Cpath%20d%3D%22M-9.0%200%20l-7.5%20-6.0%20l0%2012.0%20z%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22%232f5f78%22%20fill-opacity%3D%220.26%22%20transform%3D%22translate%28140%2022%29%20scale%281%201%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%220%22%20rx%3D%228%22%20ry%3D%224.16%22%2F%3E%3Cpath%20d%3D%22M-7.2%200%20l-6.0%20-4.8%20l0%209.6%20z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2052%22%20width%3D%2248%22%20height%3D%2252%22%3E%3Cg%20fill%3D%22%235a90a6%22%20fill-opacity%3D%220.34%22%3E%3Cpath%20d%3D%22M4%2022%20C4%2010%2014%202%2024%202%20C34%202%2044%2010%2044%2022%20C34%2027%2014%2027%204%2022%20Z%22%2F%3E%3Cpath%20d%3D%22M11%2024%20q2%2014%20-2%2022%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M24%2025%20q3%2016%200%2024%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M37%2024%20q-2%2014%202%2022%22%20stroke%3D%22%235a90a6%22%20stroke-opacity%3D%220.34%22%20stroke-width%3D%222.6%22%20fill%3D%22none%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20180%2066%22%20width%3D%22180%22%20height%3D%2266%22%3E%3Cg%20fill%3D%22%2327556c%22%20fill-opacity%3D%220.3%22%3E%3Cpath%20d%3D%22M18%2046%20C18%2022%2052%208%2096%208%20C140%208%20168%2022%20176%2040%20C150%2058%2060%2062%2018%2046%20Z%22%2F%3E%3Cpath%20d%3D%22M18%2046%20C8%2042%204%2026%202%2012%20C14%2018%2022%2030%2026%2040%20Z%22%2F%3E%3Cpath%20d%3D%22M96%208%20C96%202%20104%200%20108%202%20C104%204%20100%206%2098%2010%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
         linear-gradient(
           to bottom,
-          var(--luft-oben)  0%,
+          var(--luft-oben) 0%,
           var(--luft-unten) 24%,
-          var(--wald-fern)  33%,
-          var(--wald-nah)   47%,
-          var(--boden)      56%,
-          var(--boden)      60%,
-          var(--meer-oben)  64%,
+          var(--wald-fern) 33%,
+          var(--wald-nah) 47%,
+          var(--boden) 56%,
+          var(--boden) 60%,
+          var(--meer-oben) 64%,
           var(--meer-unten) 100%
         );
       background-repeat:
-        no-repeat, no-repeat, no-repeat, repeat-x, repeat-x,
-        no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+        no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, no-repeat, no-repeat, no-repeat,
+        no-repeat, no-repeat;
       background-position:
-        2% 6%,      /* Voegel - im freien Rand links oben */
-        97% 20%,    /* Schmetterling */
-        98% 33%,    /* Liane aus den Baumkronen */
-        0 33%,      /* ferne Baumkronen */
-        0 43%,      /* nahe Baumkronen */
-        94% 9%,     /* zweite Vogelgruppe rechts */
-        3% 76%,     /* Fische links im Meer */
-        97% 68%,    /* Qualle rechts */
-        50% 99%;    /* Wal ganz unten, unter der Fusszeile */
+        2% 6%,
+        /* Vögel - im freien Rand links oben */ 97% 20%,
+        /* Schmetterling */ 98% 33%,
+        /* Liane aus den Baumkronen */ 0 33%,
+        /* ferne Baumkronen */ 0 43%,
+        /* nahe Baumkronen */ 94% 9%,
+        /* zweite Vogelgruppe rechts */ 3% 76%,
+        /* Fische links im Meer */ 97% 68%,
+        /* Qualle rechts */ 50% 99%; /* Wal ganz unten, unter der Fußzeile */
       background-size:
-        auto, auto, auto, 500px auto, 500px auto,
-        auto, auto, auto, auto, 100% 100%;
+        auto,
+        auto,
+        auto,
+        500px auto,
+        500px auto,
+        auto,
+        auto,
+        auto,
+        auto,
+        100% 100%;
     }
   }
 
   /* --- Inhalte bekommen ihr eigenes Papier ---------------------------------
-     Vorher lag alles direkt auf einer einfarbigen Seite. Jetzt steht hinter
-     jedem Block eine Flaeche, damit Text und Kacheln ueber der Szene lesbar
-     bleiben. */
+     Hinter jedem Block steht eine Fläche, damit Text und Kacheln über der
+     Szene lesbar bleiben. */
   .leiste,
   .tabelle-huelle,
   .legende {
@@ -84,7 +90,9 @@
     box-shadow: var(--schatten-md);
   }
 
-  .tabelle-huelle { padding: var(--raum-3) var(--raum-4); }
+  .tabelle-huelle {
+    padding: var(--raum-3) var(--raum-4);
+  }
 
   .kopf,
   .fuss,
@@ -96,8 +104,23 @@
     box-shadow: var(--schatten-sm);
   }
 
-  /* Der Startdialog schwebt bereits ueber allem - er braucht nur etwas mehr
-     Halt gegen die farbige Szene dahinter. */
-  .dialog { box-shadow: var(--schatten-lg); }
+  /* Fehlermeldungen ("Du bist nicht am Zug.") bekommen Papier - direkt auf
+     der Szene käme Dunkelrot auf Grün nur auf 1,36 : 1. Aber nur, solange
+     Text darin steht: Die Zeile ist eine Live-Region (role="alert") und muss
+     deshalb auch leer im Dokument bleiben. */
+  .spielbereich__meldung,
+  .lobby__meldung {
+    &:not(:empty) {
+      background: var(--papier);
+      border-radius: var(--rund-lg);
+      padding: var(--raum-3) var(--raum-6);
+      box-shadow: var(--schatten-sm);
+    }
+  }
 
+  /* Der Startdialog schwebt bereits über allem - er braucht nur etwas mehr
+     Halt gegen die farbige Szene dahinter. */
+  .dialog {
+    box-shadow: var(--schatten-lg);
+  }
 }

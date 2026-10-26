@@ -1,18 +1,18 @@
 /**
  * Zuguhr - zeigt die Restzeit des Spielers am Zug an.
  *
- * WICHTIG: Diese Uhr entscheidet nichts. Gemessen wird ausschliesslich auf
+ * WICHTIG: Diese Uhr entscheidet nichts. Gemessen wird ausschließlich auf
  * dem Server (server/zugzeit.js). Er schickt bei jedem Zugwechsel die
- * Restzeit in Millisekunden, und dieses Modul zaehlt sie nur fuer die Anzeige
- * herunter. Laeuft die Zeit ab, meldet sich der Server mit "zeitAbgelaufen" -
+ * Restzeit in Millisekunden, und dieses Modul zählt sie nur für die Anzeige
+ * herunter. Läuft die Zeit ab, meldet sich der Server mit "zeitAbgelaufen" -
  * nicht diese Uhr.
  *
- * Mehrere Anzeigen sind moeglich (in der Leiste und im Duell zusaetzlich im
+ * Mehrere Anzeigen sind möglich (in der Leiste und im Duell zusätzlich im
  * Brett des Gegners). Jede Anzeige hat diesen Aufbau (siehe index.html):
  *   .zuguhr  >  .zuguhr__wer, .zuguhr__sekunden, .zuguhr__fuellung
  */
 
-/** So oft wird die Anzeige aufgefrischt - oft genug fuer einen ruhigen Balken. */
+/** So oft wird die Anzeige aufgefrischt - oft genug für einen ruhigen Balken. */
 const TAKT_MS = 200;
 
 /** Ab hier wird es knapp (orange) bzw. kritisch (dunkel, wackelt). */
@@ -21,14 +21,14 @@ const KRITISCH_AB = 3;
 
 /**
  * @param {object} optionen
- * @param {(text: string) => void} optionen.sage  Ansage fuer Screenreader
+ * @param {(text: string) => void} optionen.sage  Ansage für Screenreader
  */
 export function erstelleZuguhr({ sage }) {
   /** Alle Anzeigen:  { element, nurWennGegnerDran } */
   const anzeigen = [];
 
-  let ende = 0;         // performance.now(), wann die Zeit abgelaufen ist
-  let gesamtMs = 1;     // volle Zugzeit - fuer die Breite des Balkens
+  let ende = 0; // performance.now(), wann die Zeit abgelaufen ist
+  let gesamtMs = 1; // volle Zugzeit - für die Breite des Balkens
   let binDran = false;
   let gegnerName = '';
   let takt = null;
@@ -41,9 +41,13 @@ export function erstelleZuguhr({ sage }) {
 
     for (const { element, nurWennGegnerDran } of anzeigen) {
       element.hidden = nurWennGegnerDran && binDran;
-      element.querySelector('.zuguhr__wer').textContent = binDran ? 'Deine Zeit' : `Zeit von ${gegnerName}`;
+      element.querySelector('.zuguhr__wer').textContent = binDran
+        ? 'Deine Zeit'
+        : `Zeit von ${gegnerName}`;
       element.querySelector('.zuguhr__sekunden').textContent = String(sekunden);
-      element.querySelector('.zuguhr__fuellung').style.setProperty('--anteil', String(Math.min(1, restMs / gesamtMs)));
+      element
+        .querySelector('.zuguhr__fuellung')
+        .style.setProperty('--anteil', String(Math.min(1, restMs / gesamtMs)));
       element.classList.toggle('zuguhr--knapp', sekunden <= KNAPP_AB && sekunden > KRITISCH_AB);
       element.classList.toggle('zuguhr--kritisch', sekunden <= KRITISCH_AB);
     }

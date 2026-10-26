@@ -11,15 +11,25 @@
     "node": ">=18"
   },
   "scripts": {
+    "3000": "node server/server.js 3000",
+    "3333": "node server/server.js 3333",
+    "8080": "node server/server.js 8080",
     "start": "node server/server.js",
-    "build": "node --check server/server.js && node --check server/spiel.js && node --check server/tierdaten.js && node --check server/partien.js && node --check server/lobbys.js && node --check server/zugzeit.js && node scripts/pruefe-daten.js && node scripts/pruefe-important.js",
-    "test": "node --test"
+    "build": "node scripts/pruefe-syntax.js && node scripts/pruefe-daten.js && node scripts/pruefe-important.js",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
+    "prettier": "^3.9.10",
     "socket.io-client": "^4.8.3"
   }
 }

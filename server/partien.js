@@ -2,7 +2,7 @@
  * Partienverwaltung - wer wartet, wer spielt gegen wen.
  *
  * Diese Klasse kennt weder Socket.io noch HTTP. Sie arbeitet nur mit
- * Spieler-Kennungen (Strings). Dadurch laesst sie sich ohne laufenden Server
+ * Spieler-Kennungen (Strings). Dadurch lässt sie sich ohne laufenden Server
  * testen - siehe tests/partien.test.js.
  */
 
@@ -12,10 +12,10 @@ import { STANDARD_ZUGZEIT } from './zugzeit.js';
 
 export class Partienverwaltung {
   /**
-   * Die oeffentlichen Warteschlangen - eine je Spielmodus:
+   * Die öffentlichen Warteschlangen - eine je Spielmodus:
    *   modus -> Kennung des Spielers, der dort auf einen Gegner wartet.
    * Wer Duell spielen will, wird nur mit jemandem gepaart, der ebenfalls
-   * Duell gewaehlt hat.
+   * Duell gewählt hat.
    */
   #wartende = new Map();
 
@@ -23,30 +23,43 @@ export class Partienverwaltung {
   #partien = new Map();
 
   /**
-   * Was nach einer beendeten Partie von ihr uebrig bleibt - die Grundlage
+   * Was nach einer beendeten Partie von ihr übrig bleibt - die Grundlage
    * der Revanche:  spielerId -> { gegnerId, zugestimmt, modus }
    *
    * Jeder Spieler hat seine EIGENE Notiz und wirft nur diese weg. Wer eine
    * Revanche will, schaut deshalb in die Notiz des Gegners: Zeigt sie noch
-   * auf ihn zurueck, wollen beide dasselbe Duell.
+   * auf ihn zurück, wollen beide dasselbe Duell.
    *
    * Eine Notiz bleibt liegen, bis der Spieler sich neu orientiert oder die
-   * Verbindung verliert. Wer die Endkarte einfach offen stehen laesst,
-   * belegt also einen Eintrag - hoechstens einen je offener Verbindung, und
+   * Verbindung verliert. Wer die Endkarte einfach offen stehen lässt,
+   * belegt also einen Eintrag - höchstens einen je offener Verbindung, und
    * damit unkritisch.
    */
   #revancheNotizen = new Map();
 
+  /** Lost das Geheimnis einer Partie aus - in Tests ein festes Tier. */
+  #waehleGeheimnis;
+
   /**
-   * Legt eine neue Partie an und merkt sie sich fuer beide Spieler.
+   * @param {object} [optionen]
+   * @param {() => object} [optionen.waehleGeheimnis]  Standard: ein
+   *   zufälliges Tier. Die Integrationstests reichen über server.js ein
+   *   festes Tier herein (ZOODLE_TESTTIER), damit sie die Lösung kennen.
+   */
+  constructor({ waehleGeheimnis = zufallsTier } = {}) {
+    this.#waehleGeheimnis = waehleGeheimnis;
+  }
+
+  /**
+   * Legt eine neue Partie an und merkt sie sich für beide Spieler.
    *
    * Gemeinsamer Kern von suchePartie, starteLobbyPartie und
-   * stimmeRevancheZu: Eine Partie entsteht auf genau eine Art, egal ueber
+   * stimmeRevancheZu: Eine Partie entsteht auf genau eine Art, egal über
    * welchen Weg sie zustande kommt.
    */
   #starteSpiel(idA, idB, modus = 'zufall', zugzeit = STANDARD_ZUGZEIT) {
-    // Im Duell waehlen die Spieler ihre Tiere selbst - nichts auszulosen.
-    const geheimnis = modus === 'duell' ? null : zufallsTier();
+    // Im Duell wählen die Spieler ihre Tiere selbst - nichts auszulosen.
+    const geheimnis = modus === 'duell' ? null : this.#waehleGeheimnis();
     const spiel = new Spiel(idA, idB, geheimnis, modus, zugzeit);
     this.#partien.set(idA, spiel);
     this.#partien.set(idB, spiel);
@@ -72,7 +85,7 @@ export class Partienverwaltung {
     }
 
     this.#wartende.delete(modus);
-    // Oeffentlich gilt immer die Standard-Zugzeit - einstellen kann man sie
+    // Öffentlich gilt immer die Standard-Zugzeit - einstellen kann man sie
     // nur in einer privaten Lobby.
     return this.#starteSpiel(wartenderId, spielerId, modus, STANDARD_ZUGZEIT);
   }
@@ -81,7 +94,7 @@ export class Partienverwaltung {
    * Startet die Partie einer privaten Lobby: Die beiden Spieler stehen schon
    * fest, niemand muss in die Warteschlange.
    *
-   * @param {string} erstellerId  Wer die Lobby eroeffnet hat
+   * @param {string} erstellerId  Wer die Lobby eröffnet hat
    * @param {string} beitretenderId  Wer mit dem richtigen Passwort kam
    * @param {string} modus  Der Modus der Lobby
    * @param {number} zugzeit  Die Zugzeit der Lobby in Sekunden (0 = ohne Limit)
@@ -91,7 +104,7 @@ export class Partienverwaltung {
     return this.#starteSpiel(erstellerId, beitretenderId, modus, zugzeit);
   }
 
-  /** Steht dieser Spieler gerade in einer der oeffentlichen Warteschlangen? */
+  /** Steht dieser Spieler gerade in einer der öffentlichen Warteschlangen? */
   wartet(spielerId) {
     return [...this.#wartende.values()].includes(spielerId);
   }
@@ -108,7 +121,7 @@ export class Partienverwaltung {
     return this.#partien.get(spielerId);
   }
 
-  /** Beendet eine Partie und raeumt sie aus der Verwaltung. */
+  /** Beendet eine Partie und räumt sie aus der Verwaltung. */
   beende(spiel) {
     spiel.beendet = true;
 
@@ -117,7 +130,7 @@ export class Partienverwaltung {
       this.#partien.delete(id);
     }
 
-    // Die Partie ist vorbei, die Paarung merken wir uns aber: Nur so koennen
+    // Die Partie ist vorbei, die Paarung merken wir uns aber: Nur so können
     // die beiden gleich "Revanche" klicken, ohne sich neu zu suchen. Modus
     // und Zugzeit kommen mit - eine Revanche spielt man nach denselben Regeln.
     const { modus, zugzeit } = spiel;
@@ -126,14 +139,14 @@ export class Partienverwaltung {
   }
 
   /**
-   * Ein Spieler moechte eine Revanche gegen seinen letzten Gegner.
+   * Ein Spieler möchte eine Revanche gegen seinen letzten Gegner.
    *
-   * Mehrfaches Aufrufen ist ungefaehrlich: Die Zustimmung ist ein Schalter,
-   * kein Zaehler. Wer den Knopf fuenfmal drueckt, erzeugt keine fuenf
-   * Eintraege und erst recht keine fuenf Partien.
+   * Mehrfaches Aufrufen ist ungefährlich: Die Zustimmung ist ein Schalter,
+   * kein Zähler. Wer den Knopf fünfmal drückt, erzeugt keine fünf
+   * Einträge und erst recht keine fünf Partien.
    *
    * @param {string} spielerId
-   * @returns {{status: 'unmoeglich'}
+   * @returns {{status: 'unmöglich'}
    *         | {status: 'wartet', gegnerId: string}
    *         | {status: 'gestartet', spiel: Spiel}}
    */
@@ -141,7 +154,7 @@ export class Partienverwaltung {
     const notiz = this.#revancheNotizen.get(spielerId);
     if (!notiz) return { status: 'unmoeglich' };
 
-    // Zeigt die Notiz des Gegners nicht zu mir zurueck, ist er inzwischen
+    // Zeigt die Notiz des Gegners nicht zu mir zurück, ist er inzwischen
     // weitergezogen - etwa, weil er "Zur Lobby" geklickt und mit jemand
     // anderem gespielt hat. Dann gibt es nichts mehr zu revanchieren.
     const gegnerNotiz = this.#revancheNotizen.get(notiz.gegnerId);
@@ -155,7 +168,7 @@ export class Partienverwaltung {
       return { status: 'wartet', gegnerId: notiz.gegnerId };
     }
 
-    // Beide wollen: Die Notizen haben ihren Zweck erfuellt.
+    // Beide wollen: Die Notizen haben ihren Zweck erfüllt.
     this.vergissRevanche(spielerId);
     this.vergissRevanche(notiz.gegnerId);
     return {
@@ -168,7 +181,7 @@ export class Partienverwaltung {
    * Wer wartet auf eine Revanche ausgerechnet mit diesem Spieler?
    *
    * Reine Abfrage ohne Nebenwirkung. Der Server braucht sie, BEVOR er eine
-   * Notiz wegwirft: Danach weiss niemand mehr, wem die Absage gilt.
+   * Notiz wegwirft: Danach weiß niemand mehr, wem die Absage gilt.
    *
    * @returns {string | undefined} Kennung des wartenden Gegners
    */
@@ -183,7 +196,7 @@ export class Partienverwaltung {
   /**
    * Wirft die Revanche-Notiz dieses Spielers weg.
    *
-   * Bewusst nur die eigene: Dass ich weiterziehe, aendert nichts am Wunsch
+   * Bewusst nur die eigene: Dass ich weiterziehe, ändert nichts am Wunsch
    * meines Gegners. Seine Notiz zeigt dann ins Leere - stimmeRevancheZu
    * merkt das und sagt ihm ab, statt ihn ewig warten zu lassen.
    */
@@ -204,7 +217,7 @@ export class Partienverwaltung {
     if (spiel) this.beende(spiel);
 
     // Reihenfolge beachten: beende() hat gerade eine frische Revanche-Notiz
-    // angelegt - fuer einen Spieler, der schon weg ist. Die muss sofort
+    // angelegt - für einen Spieler, der schon weg ist. Die muss sofort
     // wieder verschwinden, sonst wartet sein Gegner auf ein Duell mit
     // jemandem, der gar nicht mehr da ist.
     this.vergissRevanche(spielerId);
@@ -212,18 +225,18 @@ export class Partienverwaltung {
     return spiel;
   }
 
-  /** Nur fuer Diagnose und Tests: wie viele Partien laufen gerade? */
+  /** Nur für Diagnose und Tests: wie viele Partien laufen gerade? */
   get anzahlPartien() {
     // Jede Partie steht unter zwei Kennungen in der Map.
     return this.#partien.size / 2;
   }
 
-  /** Nur fuer Diagnose und Tests: wartet gerade jemand? */
+  /** Nur für Diagnose und Tests: wartet gerade jemand? */
   get wartetJemand() {
     return this.#wartende.size > 0;
   }
 
-  /** Nur fuer Diagnose und Tests: wie viele Revanche-Notizen liegen herum? */
+  /** Nur für Diagnose und Tests: wie viele Revanche-Notizen liegen herum? */
   get anzahlRevancheNotizen() {
     return this.#revancheNotizen.size;
   }

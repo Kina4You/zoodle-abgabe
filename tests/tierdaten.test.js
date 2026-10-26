@@ -1,18 +1,33 @@
 /**
  * Tests der Tierdaten.
  *
- * Diese Tests pruefen nicht nur den Code, sondern auch die DATEN. Ein
- * Tippfehler in tiere.json faellt hier auf - nicht erst im laufenden Spiel.
+ * Diese Tests prüfen nicht nur den Code, sondern auch die DATEN. Ein
+ * Tippfehler in tiere.json fällt hier auf - nicht erst im laufenden Spiel.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ALLE_TIERE, SUCH_TIERE, findeTier, zufallsTier, pruefeTiere } from '../server/tierdaten.js';
+import {
+  ALLE_TIERE,
+  SUCH_TIERE,
+  findeTier,
+  zufallsTier,
+  pruefeTiere,
+} from '../server/tierdaten.js';
 
-const PFLICHTFELDER = ['name', 'klasse', 'lebensraum', 'ernaehrung', 'gewichtKg', 'groesseCm', 'alterJahre', 'aktivitaet'];
+const PFLICHTFELDER = [
+  'name',
+  'klasse',
+  'lebensraum',
+  'ernaehrung',
+  'gewichtKg',
+  'groesseCm',
+  'alterJahre',
+  'aktivitaet',
+];
 
-/** Ein tadelloses Testtier, das einzelne Tests gezielt beschaedigen. */
+/** Ein tadelloses Testtier, das einzelne Tests gezielt beschädigen. */
 function gutesTier(eigenschaften = {}) {
   return {
     name: 'Testtier',
@@ -46,7 +61,7 @@ test('jedes Tier hat alle Pflichtfelder', () => {
 });
 
 test('alle Zahlenwerte sind groesser als null', () => {
-  // Wichtig: die Bewertung teilt durch diese Werte. Eine Null waere fatal.
+  // Wichtig: die Bewertung teilt durch diese Werte. Eine Null wäre fatal.
   for (const tier of ALLE_TIERE) {
     for (const feld of ['gewichtKg', 'groesseCm', 'alterJahre']) {
       assert.ok(tier[feld] > 0, `"${tier.name}": ${feld} = ${tier[feld]}`);
@@ -69,7 +84,7 @@ test('die Aktivitaetszeit nutzt nur die drei erlaubten Werte', () => {
 });
 
 test('die Suchliste ist alphabetisch sortiert', () => {
-  // Wichtig fuer die Vorschlagsliste im Browser: Sie zeigt die Tiere in
+  // Wichtig für die Vorschlagsliste im Browser: Sie zeigt die Tiere in
   // genau dieser Reihenfolge an.
   const namen = SUCH_TIERE.map((tier) => tier.name);
   const sortiert = [...namen].sort((a, b) => a.localeCompare(b, 'de'));
@@ -77,7 +92,7 @@ test('die Suchliste ist alphabetisch sortiert', () => {
 });
 
 test('die Suchliste enthaelt keine Zahlenwerte', () => {
-  // Was der Browser nicht braucht, wird auch nicht uebertragen.
+  // Was der Browser nicht braucht, wird auch nicht übertragen.
   for (const eintrag of SUCH_TIERE) {
     assert.equal(eintrag.gewichtKg, undefined);
     assert.equal(eintrag.groesseCm, undefined);
@@ -108,11 +123,11 @@ test('zufallsTier liefert immer ein Tier aus der Tierliste', () => {
 });
 
 // --------------------------------------------------------------------------
-// Die Datenpruefung selbst
+// Die Datenprüfung selbst
 //
 // Diese Tests belegen, dass kaputte Daten den Serverstart WIRKLICH
-// verhindern. Ohne sie waere nur getestet, dass die heutige Datei in Ordnung
-// ist - nicht, dass die Pruefung ueberhaupt etwas taugt.
+// verhindern. Ohne sie wäre nur getestet, dass die heutige Datei in Ordnung
+// ist - nicht, dass die Prüfung überhaupt etwas taugt.
 // --------------------------------------------------------------------------
 
 test('die echten Tierdaten bestehen die Pruefung', () => {
@@ -133,23 +148,29 @@ test('die Pruefung findet jedes fehlende Pflichtfeld', () => {
     assert.throws(
       () => pruefeTiere([gutesTier(), kaputt]),
       new RegExp(`fehlt das Feld "${feld}"`),
-      `ein fehlendes "${feld}" muss auffallen`
+      `ein fehlendes "${feld}" muss auffallen`,
     );
   }
 });
 
 test('die Pruefung lehnt leere Felder ab, nicht nur fehlende', () => {
-  assert.throws(() => pruefeTiere([gutesTier(), gutesTier({ klasse: '' })]), /fehlt das Feld "klasse"/);
-  assert.throws(() => pruefeTiere([gutesTier(), gutesTier({ name: null })]), /fehlt das Feld "name"/);
+  assert.throws(
+    () => pruefeTiere([gutesTier(), gutesTier({ klasse: '' })]),
+    /fehlt das Feld "klasse"/,
+  );
+  assert.throws(
+    () => pruefeTiere([gutesTier(), gutesTier({ name: null })]),
+    /fehlt das Feld "name"/,
+  );
 });
 
 test('die Pruefung lehnt unbrauchbare Zahlenwerte ab', () => {
-  // Eine Null waere fatal: Die Bewertung teilt durch diese Zahlen.
+  // Eine Null wäre fatal: Die Bewertung teilt durch diese Zahlen.
   for (const kaputterWert of [0, -5, '100', NaN, Infinity, null]) {
     assert.throws(
       () => pruefeTiere([gutesTier(), gutesTier({ gewichtKg: kaputterWert })]),
       /gewichtKg/,
-      `${String(kaputterWert)} darf nicht durchgehen`
+      `${String(kaputterWert)} darf nicht durchgehen`,
     );
   }
 });

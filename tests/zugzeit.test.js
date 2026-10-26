@@ -2,16 +2,22 @@
  * Tests der Zugzeit-Uhren.
  *
  * Statt echt zu warten, simulieren die Tests Zeitgeber und Uhr mit
- * mock.timers aus node:test: "tick(10000)" laesst zehn Sekunden vergehen -
- * in einem Augenblick. "setTime" verstellt nur die Uhr, ohne faellige
- * Zeitgeber auszufuehren; damit laesst sich der Moment nachstellen, in dem
+ * mock.timers aus node:test: "tick(10000)" lässt zehn Sekunden vergehen -
+ * in einem Augenblick. "setTime" verstellt nur die Uhr, ohne fällige
+ * Zeitgeber auszuführen; damit lässt sich der Moment nachstellen, in dem
  * die Frist schon um ist, Node den Ablauf aber noch nicht bearbeitet hat.
  */
 
 import { test, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Zuguhren, ZUGZEITEN, STANDARD_ZUGZEIT, istGueltigeZugzeit } from '../server/zugzeit.js';
+import {
+  Zuguhren,
+  ZUGZEITEN,
+  STANDARD_ZUGZEIT,
+  WAHLZEIT_SEKUNDEN,
+  istGueltigeZugzeit,
+} from '../server/zugzeit.js';
 
 const START = 1_000_000;
 
@@ -56,7 +62,7 @@ test('die Restzeit zaehlt herunter und wird nie negativ', () => {
   mock.timers.tick(12_500);
   assert.equal(uhren.restzeitMs(spiel), 17_500);
 
-  mock.timers.setTime(START + 40_000); // Uhr ueber das Ende hinaus, Zeitgeber noch nicht dran
+  mock.timers.setTime(START + 40_000); // Uhr über das Ende hinaus, Zeitgeber noch nicht dran
   assert.equal(uhren.restzeitMs(spiel), 0);
 });
 
@@ -73,7 +79,9 @@ test('zu spaeter Tipp: Frist um, Ablauf aber noch nicht bearbeitet', () => {
   const uhren = new Zuguhren();
   const spiel = partie(10);
   let abgelaufen = false;
-  uhren.starte(spiel, () => { abgelaufen = true; });
+  uhren.starte(spiel, () => {
+    abgelaufen = true;
+  });
 
   mock.timers.setTime(START + 10_000);
   assert.equal(abgelaufen, false, 'der Zeitgeber ist noch nicht gelaufen ...');
@@ -84,10 +92,14 @@ test('ein Neustart ersetzt die alte Frist - wie nach jedem Zugwechsel', () => {
   const uhren = new Zuguhren();
   const spiel = partie(10);
   let ablaeufe = 0;
-  uhren.starte(spiel, () => { ablaeufe += 1; });
+  uhren.starte(spiel, () => {
+    ablaeufe += 1;
+  });
 
   mock.timers.tick(8_000);
-  uhren.starte(spiel, () => { ablaeufe += 1; }); // der Gegner ist jetzt dran
+  uhren.starte(spiel, () => {
+    ablaeufe += 1;
+  }); // der Gegner ist jetzt dran
   mock.timers.tick(8_000);
   assert.equal(ablaeufe, 0, 'die alte Frist darf nicht mehr ablaufen');
   assert.equal(uhren.restzeitMs(spiel), 2_000);
@@ -98,7 +110,9 @@ test('0 = ohne Zeitlimit: keine Uhr, keine Restzeit, kein Ablauf', () => {
   const uhren = new Zuguhren();
   const spiel = partie(0);
   let abgelaufen = false;
-  uhren.starte(spiel, () => { abgelaufen = true; });
+  uhren.starte(spiel, () => {
+    abgelaufen = true;
+  });
 
   assert.equal(uhren.anzahlFristen, 0);
   assert.equal(uhren.restzeitMs(spiel), null);
@@ -107,11 +121,32 @@ test('0 = ohne Zeitlimit: keine Uhr, keine Restzeit, kein Ablauf', () => {
   assert.equal(abgelaufen, false);
 });
 
+test('Wahlfrist: dieselbe Uhr laesst sich mit eigener Dauer starten', () => {
+  const uhren = new Zuguhren();
+  const spiel = partie(10);
+  let abgelaufen = false;
+  uhren.starte(
+    spiel,
+    () => {
+      abgelaufen = true;
+    },
+    WAHLZEIT_SEKUNDEN,
+  );
+
+  assert.equal(uhren.restzeitMs(spiel), 60_000, 'nicht die 10 Sekunden Zugzeit');
+  mock.timers.tick(59_999);
+  assert.equal(abgelaufen, false);
+  mock.timers.tick(1);
+  assert.equal(abgelaufen, true);
+});
+
 test('Aufraeumen: eine gestoppte Frist laeuft nie ab (Spielende, Trennung)', () => {
   const uhren = new Zuguhren();
   const spiel = partie(10);
   let abgelaufen = false;
-  uhren.starte(spiel, () => { abgelaufen = true; });
+  uhren.starte(spiel, () => {
+    abgelaufen = true;
+  });
 
   uhren.stoppe(spiel);
   mock.timers.tick(20_000);
@@ -138,7 +173,9 @@ test('die Uhr laesst sich fuer Tests beschleunigen', () => {
   const uhren = new Zuguhren({ msProSekunde: 50 });
   const spiel = partie(10);
   let abgelaufen = false;
-  uhren.starte(spiel, () => { abgelaufen = true; });
+  uhren.starte(spiel, () => {
+    abgelaufen = true;
+  });
 
   assert.equal(uhren.restzeitMs(spiel), 500, '10 "Sekunden" dauern hier 500 ms');
   mock.timers.tick(500);

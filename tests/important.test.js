@@ -1,9 +1,9 @@
 /**
- * Tests der Build-Pruefung gegen "!important".
+ * Tests der Build-Prüfung gegen "!important".
  *
- * Die Tests starten das Pruefskript genau so, wie "npm run build" es tut, und
- * schauen auf den Exit-Code: 0 heisst, der Build laeuft weiter - alles andere
- * heisst, der Build bricht ab.
+ * Die Tests starten das Prüfskript genau so, wie "npm run build" es tut, und
+ * schauen auf den Exit-Code: 0 heißt, der Build läuft weiter - alles andere
+ * heißt, der Build bricht ab.
  */
 
 import test from 'node:test';
@@ -14,9 +14,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SKRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'pruefe-important.js');
+const SKRIPT = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'scripts',
+  'pruefe-important.js',
+);
 
-/** Fuehrt das Pruefskript aus - ohne Ordner prueft es das echte public/. */
+/** Führt das Prüfskript aus - ohne Ordner prüft es das echte public/. */
 function pruefe(ordner) {
   const argumente = ordner ? [SKRIPT, ordner] : [SKRIPT];
   return spawnSync(process.execPath, argumente, { encoding: 'utf8' });
@@ -46,7 +51,7 @@ test('ein !important in einer CSS-Datei laesst den Build scheitern', (t) => {
 
   const ergebnis = pruefe(ordner);
   assert.equal(ergebnis.status, 1);
-  // Die Meldung nennt Datei und Zeile, damit man den Verstoss sofort findet.
+  // Die Meldung nennt Datei und Zeile, damit man den Verstoß sofort findet.
   assert.match(ergebnis.stderr, /verboten\.css:2/);
   assert.doesNotMatch(ergebnis.stderr, /sauber\.css/);
 });

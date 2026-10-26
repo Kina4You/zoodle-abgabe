@@ -8,24 +8,27 @@
 
 import { EIGENSCHAFTEN, STUFENTEXT } from './fortschritt.js';
 
-const tabellenKopf    = document.querySelector('#tabellen-kopf');
+const tabellenKopf = document.querySelector('#tabellen-kopf');
 const tabellenKoerper = document.querySelector('#tabellen-koerper');
-const leerzustand     = document.querySelector('#leerzustand');
+const leerzustand = document.querySelector('#leerzustand');
 
-/** Symbole ergaenzen die Farbe - Farbe allein reicht als Information nicht. */
+/** Symbole ergänzen die Farbe - Farbe allein reicht als Information nicht. */
 const SYMBOLE = { treffer: '✓', nah: '~', daneben: '✕' };
-const PFEILE  = { hoeher: '↑', niedriger: '↓' };
+const PFEILE = { hoeher: '↑', niedriger: '↓' };
 const KLARTEXT = { treffer: 'stimmt', nah: 'nah dran', daneben: 'falsch' };
 
 /**
  * Die Bewertung eines Hinweises in Worten, z. B. "falsch, gesucht ist hoeher".
- * Steht fuer Screenreader in jeder Kachel und im Tooltip.
+ * Steht für Screenreader in jeder Kachel und im Tooltip.
  * @param {{bewertung: string, richtung?: string}} hinweis
  */
-export function bewertungInWorten({ bewertung, richtung }) {
-  const richtungsText = richtung === 'hoeher'    ? ', gesucht ist höher'
-                      : richtung === 'niedriger' ? ', gesucht ist niedriger'
-                      : '';
+function bewertungInWorten({ bewertung, richtung }) {
+  const richtungsText =
+    richtung === 'hoeher'
+      ? ', gesucht ist höher'
+      : richtung === 'niedriger'
+        ? ', gesucht ist niedriger'
+        : '';
   return KLARTEXT[bewertung] + richtungsText;
 }
 
@@ -57,11 +60,16 @@ export function setzeKategorien(kategorien) {
 }
 
 /**
- * Haengt einen Tipp oben an die Tabelle an.
- * @param {{tierName: string, raterName: string, vonMir: boolean, hinweise: Array}} tipp
+ * Hängt einen Tipp oben an die Tabelle an.
+ * @param {{tierName: string, raterName: string, vonMir: boolean, hinweise: Array, richtig: boolean}} tipp
  */
-export function fuegeTippHinzu({ tierName, raterName, vonMir, hinweise }, { beschriftung } = {}) {
+export function fuegeTippHinzu(
+  { tierName, raterName, vonMir, hinweise, richtig },
+  { beschriftung } = {},
+) {
   const zeile = document.createElement('tr');
+  // Der Siegtipp leuchtet nach dem Aufdecken kurz auf (Animation im CSS).
+  if (richtig) zeile.className = 'zeile--sieg';
 
   // Im Duell steht unter dem Tiernamen "Tipp 4" statt des Spielernamens -
   // in "Dein Brett" stehen ohnehin nur die eigenen Tipps.
@@ -100,20 +108,22 @@ function baueHinweisZelle({ titel, anzeige, bewertung, richtung }) {
   const kachel = document.createElement('div');
   kachel.className = `kachel kachel--${bewertung}`;
 
-  // Bei Zahlen ("450 kg") verbindet ein geschuetztes Leerzeichen (\u00A0)
-  // Zahl und Einheit - sonst stuende "kg" bei Platzmangel allein darunter.
+  // Bei Zahlen ("450 kg") verbindet ein geschütztes Leerzeichen (\u00A0)
+  // Zahl und Einheit - sonst stünde "kg" bei Platzmangel allein darunter.
   const text = document.createElement('span');
   text.textContent = /^\d/.test(anzeige) ? anzeige.replace(' ', '\u00A0') : anzeige;
 
   const zeichen = document.createElement('span');
   zeichen.className = 'kachel__zeichen';
-  // Das Zeichen steht IMMER da, bei Zahlen zusaetzlich der Pfeil ("~ ↓").
-  // Stuende dort nur der Pfeil, unterschieden sich "nah dran" und "falsch"
+  // Das Zeichen steht IMMER da, bei Zahlen zusätzlich der Pfeil ("~ ↓").
+  // Stünde dort nur der Pfeil, unterschieden sich "nah dran" und "falsch"
   // allein durch die Farbe - und genau die sehen nicht alle.
-  zeichen.textContent = richtung ? `${SYMBOLE[bewertung]}\u00A0${PFEILE[richtung]}` : SYMBOLE[bewertung];
+  zeichen.textContent = richtung
+    ? `${SYMBOLE[bewertung]}\u00A0${PFEILE[richtung]}`
+    : SYMBOLE[bewertung];
   zeichen.setAttribute('aria-hidden', 'true');
 
-  // Klartext fuer Screenreader - unsichtbar, aber Teil des Kachelinhalts.
+  // Klartext für Screenreader - unsichtbar, aber Teil des Kachelinhalts.
   // Ein aria-label direkt am <div> ginge nicht: Auf einem Element ohne eigene
   // Rolle ist es nicht erlaubt, und Screenreader ignorieren es dort oft.
   // Den Spaltentitel ("Gewicht") liest der Screenreader aus dem Tabellenkopf.
@@ -124,14 +134,14 @@ function baueHinweisZelle({ titel, anzeige, bewertung, richtung }) {
 
   kachel.append(text, zeichen, vorlesen);
 
-  // Tooltip fuer die Maus: alles in einem Satz, samt Spaltentitel.
+  // Tooltip für die Maus: alles in einem Satz, samt Spaltentitel.
   kachel.title = `${titel}: ${anzeige} – ${worte}`;
 
   zelle.append(kachel);
   return zelle;
 }
 
-/** Leert die Tabelle - noetig, wenn eine neue Partie beginnt. */
+/** Leert die Tabelle - nötig, wenn eine neue Partie beginnt. */
 export function leereTabelle() {
   tabellenKoerper.replaceChildren();
   leerzustand.hidden = false;
@@ -143,33 +153,35 @@ export function leereTabelle() {
 
 /**
  * Die sieben Fortschritts-Felder (Kl Le Er ...). Geknackt erkennt man an
- * Fuellung UND Rahmen; der Screenreader liest "Klasse: geknackt".
+ * Füllung UND Rahmen; der Screenreader liest "Klasse: geknackt".
  * @param {HTMLOListElement} liste
  * @param {Set<string>} geknacktMenge
  * @param {string} wem  "dir" oder der Name des Gegners
  */
 export function zeichneFelder(liste, geknacktMenge, wem) {
   liste.setAttribute('aria-label', `Eigenschaften von ${wem}`);
-  liste.replaceChildren(...EIGENSCHAFTEN.map(({ schluessel, kurz, name }) => {
-    const ja = geknacktMenge.has(schluessel);
-    const feld = document.createElement('li');
-    feld.className = ja ? 'fund fund--ja' : 'fund';
+  liste.replaceChildren(
+    ...EIGENSCHAFTEN.map(({ schluessel, kurz, name }) => {
+      const ja = geknacktMenge.has(schluessel);
+      const feld = document.createElement('li');
+      feld.className = ja ? 'fund fund--ja' : 'fund';
 
-    const sichtbar = document.createElement('span');
-    sichtbar.setAttribute('aria-hidden', 'true');
-    sichtbar.textContent = kurz;
+      const sichtbar = document.createElement('span');
+      sichtbar.setAttribute('aria-hidden', 'true');
+      sichtbar.textContent = kurz;
 
-    const vorlesen = document.createElement('span');
-    vorlesen.className = 'nur-sr';
-    vorlesen.textContent = `${name}: ${ja ? 'geknackt' : 'offen'}`;
+      const vorlesen = document.createElement('span');
+      vorlesen.className = 'nur-sr';
+      vorlesen.textContent = `${name}: ${ja ? 'geknackt' : 'offen'}`;
 
-    feld.append(sichtbar, vorlesen);
-    return feld;
-  }));
+      feld.append(sichtbar, vorlesen);
+      return feld;
+    }),
+  );
 }
 
 /**
- * Eine Spurkarte fuer einen Tipp des Gegners: Tiername und die sieben
+ * Eine Spurkarte für einen Tipp des Gegners: Tiername und die sieben
  * Bewertungen als Symbol - ohne Werte, damit das Brett kompakt bleibt.
  * Neuester Tipp links.
  * @param {HTMLOListElement} liste
@@ -233,7 +245,9 @@ export function setzeStufe(element, stufe) {
  * @param {string} seite.stufe    Gefahrenstufe - steht beim Verlierer
  */
 export function baueEndstandSeite({ wer, sieger, verb, tier, tipps, geknackt, stufe }) {
-  const seite = document.querySelector('#vorlage-endstand-seite').content.firstElementChild.cloneNode(true);
+  const seite = document
+    .querySelector('#vorlage-endstand-seite')
+    .content.firstElementChild.cloneNode(true);
   seite.classList.toggle('endstand__seite--sieger', sieger);
   seite.querySelector('.endstand__wer').textContent = wer;
   seite.querySelector('.endstand__verb').textContent = verb;
@@ -249,7 +263,9 @@ export function baueEndstandSeite({ wer, sieger, verb, tier, tipps, geknackt, st
     plakette.textContent = 'gewonnen';
     kopf.append(plakette);
   } else {
-    const stufenPlakette = document.querySelector('#vorlage-stufe').content.firstElementChild.cloneNode(true);
+    const stufenPlakette = document
+      .querySelector('#vorlage-stufe')
+      .content.firstElementChild.cloneNode(true);
     setzeStufe(stufenPlakette, stufe);
     kopf.append(stufenPlakette);
   }

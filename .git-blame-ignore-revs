@@ -1,0 +1,6 @@
+# Commits, die "git blame" überspringen soll: reine Formatierung ohne
+# inhaltliche Änderung. GitHub liest diese Datei von selbst; lokal:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Abgabe-Check: Code mit Prettier einheitlich formatiert
+386a8bbf7e68de1c7eaf245855a0f2eca02f8b10

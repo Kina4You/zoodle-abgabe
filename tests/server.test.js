@@ -1,10 +1,10 @@
 /**
  * Integrationstests des Servers.
  *
- * Anders als die uebrigen Tests pruefen diese hier nicht einzelne Funktionen,
+ * Anders als die übrigen Tests prüfen diese hier nicht einzelne Funktionen,
  * sondern den ECHTEN Server: Er wird als eigener Prozess gestartet, und die
  * Tests verbinden sich als richtige Socket.io-Clients - genau so, wie es ein
- * Browser tut. Damit ist auch server.js abgedeckt, wo die vier Regelpruefungen
+ * Browser tut. Damit ist auch server.js abgedeckt, wo die sechs Regelprüfungen
  * gegen Cheating stehen.
  *
  * Der Port wird vom Betriebssystem vergeben, damit die Tests nie mit einem
@@ -15,6 +15,7 @@ import test, { before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,7 +23,7 @@ import { io } from 'socket.io-client';
 
 const WURZEL = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Wie lange ein Test hoechstens auf eine Serverantwort wartet. */
+/** Wie lange ein Test höchstens auf eine Serverantwort wartet. */
 const ZEITLIMIT = 4000;
 
 let serverProzess;
@@ -49,7 +50,10 @@ function freierPort() {
 /** Startet den Server und wartet, bis er wirklich lauscht. */
 function starteServer(port) {
   return new Promise((erfuellen, ablehnen) => {
-    const prozess = spawn('node', ['server/server.js', String(port)], { cwd: WURZEL });
+    const prozess = spawn('node', ['server/server.js', String(port)], {
+      cwd: WURZEL,
+      env: { ...process.env, ZOODLE_TESTTIER: TESTTIER },
+    });
 
     const uhr = setTimeout(() => ablehnen(new Error('Server ist nicht gestartet.')), ZEITLIMIT);
 
@@ -61,54 +65,46 @@ function starteServer(port) {
         erfuellen(prozess);
       }
     });
-    prozess.stderr.on('data', (brocken) => { serverLog += brocken.toString(); });
+    prozess.stderr.on('data', (brocken) => {
+      serverLog += brocken.toString();
+    });
     prozess.on('error', ablehnen);
   });
 }
 
 /**
- * Die Loesung der Partie, die gerade laeuft. Wird von startePartie() gesetzt.
+ * Das Tier, das in jeder Partie (Zufallstier) dieses Testservers gesucht wird.
  *
- * Der Umweg ueber das Serverlog ist bewusst der einzige Weg: Der Server
- * schickt die Loesung erst beim Spielende an die Clients. Ein Test, der den
- * Sieg pruefen will, muss sie also von aussen erfahren.
+ * Der Server schickt die Lösung erst beim Spielende an die Clients. Ein
+ * Test, der den Sieg prüfen will, muss sie also vorher kennen. Deshalb
+ * startet er den Server mit ZOODLE_TESTTIER (siehe server.js) - genommen
+ * wird einfach das erste Tier der Datenbank.
  */
-let aktuelleLoesung = null;
-const gesuchtesTier = () => aktuelleLoesung;
+const TESTTIER = JSON.parse(readFileSync(path.join(WURZEL, 'data', 'tiere.json'), 'utf8'))[0].name;
+const gesuchtesTier = () => TESTTIER;
 
-/** Wie viele Partien hat der Server bisher protokolliert? */
-function protokollierteLoesungen() {
-  return [...serverLog.matchAll(/\(gesucht: (.+?)\)/g)].map((t) => t[1]);
-}
-
-/**
- * Wartet, bis der Server die naechste Partie ins Log geschrieben hat.
- *
- * Noetig, weil der Server "spielStart" an die Clients schickt, BEVOR er die
- * Zeile protokolliert (server.js:186-197). Ohne dieses Warten koennte der
- * Test die Loesung der vorherigen Partie erwischen.
- */
-async function warteAufProtokoll(vorherBekannt) {
-  const grenze = Date.now() + ZEITLIMIT;
-  while (Date.now() < grenze) {
-    const alle = protokollierteLoesungen();
-    if (alle.length > vorherBekannt) return alle[alle.length - 1];
-    await kurzWarten(20);
-  }
-  throw new Error('Der Server hat die neue Partie nicht protokolliert.');
-}
-
-/** Alle in diesem Test geoeffneten Verbindungen - werden danach geschlossen. */
+/** Alle in diesem Test geöffneten Verbindungen - werden danach geschlossen. */
 let offeneClients = [];
 
-/** Verbindet einen neuen Client und wartet, bis die Verbindung steht. */
-function neuerClient(ziel = adresse) {
+/**
+ * Verbindet einen neuen Client und wartet, bis die Verbindung steht.
+ * @param {object} [kopfzeilen]  z. B. { 'x-forwarded-for': '...' } - so, wie
+ *   Caddy sie auf dem DHBW-Server mitschickt
+ */
+function neuerClient(ziel = adresse, kopfzeilen = {}) {
   return new Promise((erfuellen, ablehnen) => {
-    const client = io(ziel, { transports: ['websocket'], reconnection: false });
+    const client = io(ziel, {
+      transports: ['websocket'],
+      reconnection: false,
+      extraHeaders: kopfzeilen,
+    });
     offeneClients.push(client);
 
     const uhr = setTimeout(() => ablehnen(new Error('Verbindung kam nicht zustande.')), ZEITLIMIT);
-    client.on('connect', () => { clearTimeout(uhr); erfuellen(client); });
+    client.on('connect', () => {
+      clearTimeout(uhr);
+      erfuellen(client);
+    });
     client.on('connect_error', ablehnen);
   });
 }
@@ -118,13 +114,16 @@ function warteAuf(client, ereignis, zeitlimit = ZEITLIMIT) {
   return new Promise((erfuellen, ablehnen) => {
     const uhr = setTimeout(
       () => ablehnen(new Error(`Ereignis "${ereignis}" kam nicht innerhalb von ${zeitlimit} ms.`)),
-      zeitlimit
+      zeitlimit,
     );
-    client.once(ereignis, (daten) => { clearTimeout(uhr); erfuellen(daten); });
+    client.once(ereignis, (daten) => {
+      clearTimeout(uhr);
+      erfuellen(daten);
+    });
   });
 }
 
-/** Wartet eine feste Zeit - noetig, um zu pruefen, dass NICHTS passiert. */
+/** Wartet eine feste Zeit - nötig, um zu prüfen, dass NICHTS passiert. */
 const kurzWarten = (ms = 250) => new Promise((erfuellen) => setTimeout(erfuellen, ms));
 
 /**
@@ -145,13 +144,16 @@ async function inWarteschlange(client) {
 }
 
 /**
- * Wartet, bis eine Lobbyliste kommt, die die Bedingung erfuellt.
- * Noetig, weil der Server die Liste bei JEDER Aenderung schickt - die
+ * Wartet, bis eine Lobbyliste kommt, die die Bedingung erfüllt.
+ * Nötig, weil der Server die Liste bei JEDER Änderung schickt - die
  * erste, die ankommt, ist nicht unbedingt die, auf die der Test wartet.
  */
 function warteAufListe(client, bedingung) {
   return new Promise((erfuellen, ablehnen) => {
-    const uhr = setTimeout(() => ablehnen(new Error('Die erwartete Lobbyliste kam nicht.')), ZEITLIMIT);
+    const uhr = setTimeout(
+      () => ablehnen(new Error('Die erwartete Lobbyliste kam nicht.')),
+      ZEITLIMIT,
+    );
     const pruefe = (liste) => {
       if (!bedingung(liste)) return;
       clearTimeout(uhr);
@@ -163,13 +165,11 @@ function warteAufListe(client, bedingung) {
 }
 
 /**
- * Meldet zwei Spieler an, schickt beide in die oeffentliche Warteschlange
- * und liefert die fertige Partie zurueck.
+ * Meldet zwei Spieler an, schickt beide in die öffentliche Warteschlange
+ * und liefert die fertige Partie zurück.
  * @returns {Promise<{amZug, wartend, anna, ben, modus}>}
  */
 async function startePartie() {
-  const bisher = protokollierteLoesungen().length;
-
   const anna = await neuerClient();
   const ben = await neuerClient();
 
@@ -182,19 +182,17 @@ async function startePartie() {
   ben.emit('warteschlangeBetreten');
   const [infoAnna] = await Promise.all([startAnna, startBen]);
 
-  aktuelleLoesung = await warteAufProtokoll(bisher);
-
   return {
     anna,
     ben,
     modus: infoAnna.modus,
-    loesung: aktuelleLoesung,
+    loesung: TESTTIER,
     amZug: infoAnna.duBistDran ? anna : ben,
     wartend: infoAnna.duBistDran ? ben : anna,
   };
 }
 
-/** Ein Tiername, der garantiert nicht die Loesung ist. */
+/** Ein Tiername, der garantiert nicht die Lösung ist. */
 function falschesTier(ausser = []) {
   const loesung = gesuchtesTier();
   return alleTiere.find((t) => t.name !== loesung && !ausser.includes(t.name)).name;
@@ -213,7 +211,7 @@ before(async () => {
 
 // Nach jedem Test alle Verbindungen schliessen. Das ist wichtig: Der Server
 // merkt sich global, wer auf einen Gegner wartet. Bliebe ein Client offen,
-// wuerde er im naechsten Test faelschlich mit jemandem gepaart.
+// würde er im nächsten Test fälschlich mit jemandem gepaart.
 afterEach(async () => {
   for (const client of offeneClients) client.disconnect();
   offeneClients = [];
@@ -241,7 +239,10 @@ test('die Anmeldung allein startet noch keine Partie', async () => {
   const anna = await neuerClient();
   const ben = await neuerClient();
   let gestartet = false;
-  for (const c of [anna, ben]) c.on('spielStart', () => { gestartet = true; });
+  for (const c of [anna, ben])
+    c.on('spielStart', () => {
+      gestartet = true;
+    });
 
   await anmelden(anna, 'Anna');
   await anmelden(ben, 'Ben');
@@ -291,6 +292,19 @@ test('beide Spieler erfahren den Namen des Gegners', async () => {
   assert.ok(Array.isArray(infoAnna.kategorien), 'die Spalten des Spielfelds kommen mit');
 });
 
+test('jede HTTP-Antwort hat die Sicherheits-Kopfzeilen und verraet keine Software', async () => {
+  for (const weg of ['/', '/api/tiere', '/css/basis.css', '/gibt-es-nicht']) {
+    const antwort = await fetch(adresse + weg);
+    const csp = antwort.headers.get('content-security-policy') ?? '';
+    assert.match(csp, /default-src 'self'/, weg);
+    assert.match(csp, /img-src 'self' data:/, `${weg}: ohne data: verschwaende die Szene`);
+    assert.match(csp, /frame-ancestors 'none'/, weg);
+    assert.equal(antwort.headers.get('x-content-type-options'), 'nosniff', weg);
+    assert.equal(antwort.headers.get('referrer-policy'), 'no-referrer', weg);
+    assert.equal(antwort.headers.get('x-powered-by'), null, weg);
+  }
+});
+
 test('ein leerer Name wird abgelehnt', async () => {
   const client = await neuerClient();
   const fehler = warteAuf(client, 'fehler');
@@ -299,8 +313,35 @@ test('ein leerer Name wird abgelehnt', async () => {
   assert.match(await fehler, /Namen/);
 });
 
+test('unsichtbare Zeichen im Namen kommen beim Gegner nicht an', async () => {
+  const anna = await neuerClient();
+  const ben = await neuerClient();
+  assert.equal((await anmelden(anna, '\u202Eanna\u200B')).name, 'anna');
+  await anmelden(ben, 'Ben');
+  await inWarteschlange(anna);
+
+  const start = warteAuf(ben, 'spielStart');
+  ben.emit('warteschlangeBetreten');
+  assert.equal((await start).gegnerName, 'anna');
+});
+
+test('ein Name nur aus unsichtbaren Zeichen wird abgelehnt', async () => {
+  const client = await neuerClient();
+  const fehler = warteAuf(client, 'fehler');
+  client.emit('anmelden', '\u200B\u200B');
+  assert.match(await fehler, /Namen/);
+});
+
+test('ein Emoji an der Laengengrenze bleibt ganz', async () => {
+  const client = await neuerClient();
+  const { name } = await anmelden(client, 'a'.repeat(19) + '😀');
+  assert.equal(name, 'a'.repeat(19) + '😀');
+});
+
 // --------------------------------------------------------------------------
-// Die vier Regelpruefungen gegen Cheating
+// Die Regelprüfungen gegen Cheating - Nummern wie in pruefeRateversuch()
+// (server.js). Regel 2 (Duell-Wahl) und Regel 4 (Zeit abgelaufen) stehen
+// weiter unten bei Duell und Zugzeit.
 // --------------------------------------------------------------------------
 
 test('Regel 1: wer in keiner Partie ist, darf nicht raten', async () => {
@@ -314,7 +355,7 @@ test('Regel 1: wer in keiner Partie ist, darf nicht raten', async () => {
   assert.match(await fehler, /keiner laufenden Partie/);
 });
 
-test('Regel 2: wer nicht am Zug ist, darf nicht raten', async () => {
+test('Regel 3: wer nicht am Zug ist, darf nicht raten', async () => {
   const { wartend } = await startePartie();
 
   const fehler = warteAuf(wartend, 'fehler');
@@ -323,13 +364,15 @@ test('Regel 2: wer nicht am Zug ist, darf nicht raten', async () => {
   assert.match(await fehler, /nicht am Zug/);
 });
 
-test('Regel 2: auch die richtige Loesung zaehlt nicht, wenn man nicht am Zug ist', async () => {
+test('Regel 3: auch die richtige Loesung zaehlt nicht, wenn man nicht am Zug ist', async () => {
   const { wartend, amZug } = await startePartie();
 
-  // Der haerteste Fall: Der Wartende kennt die Loesung und feuert sie ab.
+  // Der härteste Fall: Der Wartende kennt die Lösung und feuert sie ab.
   const fehler = warteAuf(wartend, 'fehler');
   let hatGewonnen = false;
-  wartend.once('spielEnde', () => { hatGewonnen = true; });
+  wartend.once('spielEnde', () => {
+    hatGewonnen = true;
+  });
   wartend.emit('raten', gesuchtesTier());
 
   assert.match(await fehler, /nicht am Zug/);
@@ -338,7 +381,7 @@ test('Regel 2: auch die richtige Loesung zaehlt nicht, wenn man nicht am Zug ist
   assert.ok(amZug);
 });
 
-test('Regel 3: erfundene Tiere werden abgelehnt', async () => {
+test('Regel 5: erfundene Tiere werden abgelehnt', async () => {
   const { amZug } = await startePartie();
 
   const fehler = warteAuf(amZug, 'fehler');
@@ -347,7 +390,7 @@ test('Regel 3: erfundene Tiere werden abgelehnt', async () => {
   assert.match(await fehler, /kenne ich nicht/);
 });
 
-test('Regel 4: dasselbe Tier laesst sich kein zweites Mal raten', async () => {
+test('Regel 6: dasselbe Tier laesst sich kein zweites Mal raten', async () => {
   const { amZug, wartend } = await startePartie();
   const tier = falschesTier();
 
@@ -401,12 +444,13 @@ test('das gesuchte Tier steht in keiner Nachricht, solange die Partie laeuft', a
   const { amZug, wartend } = await startePartie();
   const loesung = gesuchtesTier();
 
-  // Alles mitschneiden, was der Server waehrend der Partie schickt.
+  // Alles mitschneiden, was der Server während der Partie schickt.
   const mitschnitt = [];
   amZug.onAny((ereignis, daten) => mitschnitt.push({ ereignis, daten }));
   wartend.onAny((ereignis, daten) => mitschnitt.push({ ereignis, daten }));
 
-  let dran = amZug, andere = wartend;
+  let dran = amZug,
+    andere = wartend;
   const schonGeraten = [];
   for (let i = 0; i < 4; i++) {
     const tier = falschesTier(schonGeraten);
@@ -419,8 +463,23 @@ test('das gesuchte Tier steht in keiner Nachricht, solange die Partie laeuft', a
 
   assert.ok(mitschnitt.length > 0, 'es wurde ueberhaupt etwas mitgeschnitten');
   const durchsickert = mitschnitt.find((n) => JSON.stringify(n).includes(loesung));
-  assert.equal(durchsickert, undefined,
-    `Die Loesung "${loesung}" stand in der Nachricht "${durchsickert?.ereignis}".`);
+  assert.equal(
+    durchsickert,
+    undefined,
+    `Die Loesung "${loesung}" stand in der Nachricht "${durchsickert?.ereignis}".`,
+  );
+});
+
+// Das Geheimnis darf auch nicht im Serverlog stehen, solange die Partie läuft.
+test('das gesuchte Tier steht nicht im Serverlog, solange die Partie laeuft', async () => {
+  const vorher = serverLog.length;
+  const { amZug } = await startePartie();
+  const zug = warteAuf(amZug, 'zug');
+  amZug.emit('raten', falschesTier());
+  await zug;
+  await kurzWarten(100);
+
+  assert.ok(!serverLog.slice(vorher).includes(TESTTIER), serverLog.slice(vorher));
 });
 
 test('ein richtiger Tipp beendet die Partie fuer beide', async () => {
@@ -435,9 +494,13 @@ test('ein richtiger Tipp beendet die Partie fuer beide', async () => {
 
   assert.equal(beimGewinner.duHastGewonnen, true);
   assert.equal(beimVerlierer.duHastGewonnen, false);
-  assert.equal(beimGewinner.gewinnerName, beimVerlierer.gewinnerName, 'beide sehen denselben Sieger');
+  assert.equal(
+    beimGewinner.gewinnerName,
+    beimVerlierer.gewinnerName,
+    'beide sehen denselben Sieger',
+  );
 
-  // Erst JETZT darf die Loesung mitkommen - und beide bekommen sie.
+  // Erst JETZT darf die Lösung mitkommen - und beide bekommen sie.
   assert.equal(beimGewinner.geheimnis.name, loesung);
   assert.equal(beimVerlierer.geheimnis.name, loesung);
   assert.equal(beimGewinner.anzahlTipps, 1);
@@ -483,7 +546,11 @@ test('Abbruch in laufender Partie: der Gegner erfaehrt es und bekommt die Loesun
   amZug.disconnect();
 
   const daten = await nachricht;
-  assert.equal(daten.geheimnis.name, loesung, 'die Partie ist vorbei, also darf die Loesung kommen');
+  assert.equal(
+    daten.geheimnis.name,
+    loesung,
+    'die Partie ist vorbei, also darf die Loesung kommen',
+  );
   assert.equal(serverProzess.exitCode, null, 'der Server laeuft weiter');
 });
 
@@ -530,7 +597,7 @@ test('beide Spieler brechen gleichzeitig ab: kein Absturz', async () => {
 test('kaputte Nutzlasten bringen den Server nicht zum Absturz', async () => {
   const { amZug } = await startePartie();
 
-  // Alles, was ein manipulierter Client statt eines Tiernamens schicken koennte.
+  // Alles, was ein manipulierter Client statt eines Tiernamens schicken könnte.
   const boesartig = [null, 42, {}, [1, 2, 3], true, '', '   ', '<img src=x onerror=alert(1)>'];
 
   for (const nutzlast of boesartig) {
@@ -578,9 +645,8 @@ test('die Bremse greift auch bei frei erfundenen Ereignisnamen', async () => {
   const client = await neuerClient();
   await anmelden(client, 'Schleicher');
 
-  // Genau die Luecke aus dem Code-Review: Frueher zaehlte die Bremse nur
-  // "anmelden" und "raten". Wer einen beliebigen anderen Namen sendete,
-  // kam voellig ungebremst durch.
+  // Die Bremse muss JEDES Ereignis zählen, nicht nur "anmelden" und
+  // "raten" - sonst käme ein frei erfundener Name ungebremst durch.
   for (let i = 0; i < 200; i++) client.emit('voelligFrei', 'x'.repeat(100));
   await kurzWarten(800);
 
@@ -601,19 +667,23 @@ test('wer gebremst wird, erfaehrt es - aber nur einmal je Sekunde', async () => 
   await kurzWarten(500);
 
   const bremsmeldungen = meldungen.filter((text) => text.includes('langsamer'));
-  assert.equal(bremsmeldungen.length, 1,
-    'genau eine Bremsmeldung - sonst wuerde die Antwort die Flut verstaerken');
+  assert.equal(
+    bremsmeldungen.length,
+    1,
+    'genau eine Bremsmeldung - sonst wuerde die Antwort die Flut verstaerken',
+  );
   assert.equal(client.connected, true, 'unter der Kappungsgrenze bleibt die Verbindung bestehen');
 });
 
 test('normales Spielen loest die Bremse nicht aus', async () => {
   const { amZug, wartend } = await startePartie();
 
-  // Ein Zugwechsel hin und zurueck in ruhigem Tempo - das muss durchgehen.
+  // Ein Zugwechsel hin und zurück in ruhigem Tempo - das muss durchgehen.
   const namen = [];
   for (let i = 0; i < 2; i++) namen.push(falschesTier(namen));
 
-  let dran = amZug, andere = wartend;
+  let dran = amZug,
+    andere = wartend;
   for (const name of namen) {
     const zug = warteAuf(dran, 'zug');
     dran.emit('raten', name);
@@ -626,7 +696,7 @@ test('normales Spielen loest die Bremse nicht aus', async () => {
 });
 
 // --------------------------------------------------------------------------
-// Gleichzeitige Zuege
+// Gleichzeitige Züge
 // --------------------------------------------------------------------------
 
 test('mehrere Tipps im selben Augenblick ergeben genau EINEN gueltigen Zug', async () => {
@@ -637,8 +707,8 @@ test('mehrere Tipps im selben Augenblick ergeben genau EINEN gueltigen Zug', asy
   const fehler = [];
   amZug.on('fehler', (text) => fehler.push(text));
 
-  // Fuenf Tipps ohne Pause dazwischen. Waere die Zugverarbeitung
-  // unterbrechbar, kaeme derselbe Spieler mehrfach hintereinander dran.
+  // Fünf Tipps ohne Pause dazwischen. Wäre die Zugverarbeitung
+  // unterbrechbar, käme derselbe Spieler mehrfach hintereinander dran.
   const namen = [];
   for (let i = 0; i < 5; i++) namen.push(falschesTier(namen));
   for (const name of namen) amZug.emit('raten', name);
@@ -666,7 +736,6 @@ test('stimmen beide zu, spielen dieselben zwei Spieler erneut', async () => {
   const partie = await startePartie();
   const { anna, ben } = partie;
   const ersteLoesung = gesuchtesTier();
-  const bisher = protokollierteLoesungen().length;
 
   await spieleZuEnde(partie);
 
@@ -676,7 +745,7 @@ test('stimmen beide zu, spielen dieselben zwei Spieler erneut', async () => {
   anna.emit('revanche');
   await Promise.all([annaWartet, benErfaehrtEs]);
 
-  // Ben klickt auch - jetzt geht es fuer beide von vorn los.
+  // Ben klickt auch - jetzt geht es für beide von vorn los.
   const startAnna = warteAuf(anna, 'spielStart');
   const startBen = warteAuf(ben, 'spielStart');
   ben.emit('revanche');
@@ -686,11 +755,8 @@ test('stimmen beide zu, spielen dieselben zwei Spieler erneut', async () => {
   assert.equal(infoBen.gegnerName, 'Anna');
   assert.notEqual(infoAnna.duBistDran, infoBen.duBistDran, 'genau einer faengt an');
 
-  const zweiteLoesung = await warteAufProtokoll(bisher);
-  assert.ok(zweiteLoesung, 'der Server protokolliert eine zweite Partie');
-  aktuelleLoesung = zweiteLoesung;
-
-  // Die neue Partie ist wirklich neu: Das alte Tier laesst sich wieder raten.
+  // Die neue Partie ist wirklich neu: Das alte Tier lässt sich wieder raten
+  // ("schon geraten" wäre ein Fehler statt eines Zuges).
   const dranJetzt = infoAnna.duBistDran ? anna : ben;
   const zug = warteAuf(dranJetzt, 'zug');
   dranJetzt.emit('raten', ersteLoesung);
@@ -704,7 +770,9 @@ test('stimmt nur einer zu, passiert nichts weiter', async () => {
 
   const benErfaehrtEs = warteAuf(ben, 'revancheAngeboten');
   let neueRunde = false;
-  anna.once('spielStart', () => { neueRunde = true; });
+  anna.once('spielStart', () => {
+    neueRunde = true;
+  });
   anna.emit('revanche');
   await benErfaehrtEs;
 
@@ -768,7 +836,7 @@ test('mehrfaches Klicken auf Revanche startet nur eine Partie', async () => {
   anna.on('spielStart', (daten) => starts.push(daten));
 
   ben.emit('revanche');
-  // Fuenf Klicks - langsam genug, um nicht in die Nachrichtenbremse zu laufen.
+  // Fünf Klicks - langsam genug, um nicht in die Nachrichtenbremse zu laufen.
   for (let i = 0; i < 5; i++) {
     anna.emit('revanche');
     await kurzWarten(120);
@@ -779,11 +847,62 @@ test('mehrfaches Klicken auf Revanche startet nur eine Partie', async () => {
   assert.equal(serverProzess.exitCode, null, 'der Server laeuft weiter');
 });
 
+// Ein manipulierter Client springt nach der Zusage direkt in die
+// Warteschlange oder eine Lobby, ohne "Zur Lobby". Sagt der alte Gegner dann
+// zu, darf keine zweite Partie mit ihm entstehen.
+for (const [weg, ziehWeiter] of [
+  ['Warteschlange', (client) => client.emit('warteschlangeBetreten')],
+  [
+    'eigene Lobby',
+    (client) => client.emit('lobbyErstellen', { modus: 'zufall', passwort: 'geheim' }),
+  ],
+]) {
+  test(`Revanche zugesagt, dann ${weg}: der alte Gegner startet keine zweite Partie`, async () => {
+    const partie = await startePartie();
+    const { anna, ben } = partie;
+    await spieleZuEnde(partie);
+
+    const annaWartet = warteAuf(anna, 'revancheWartet');
+    anna.emit('revanche');
+    await annaWartet;
+
+    let annaInZweiPartien = false;
+    anna.once('spielStart', () => {
+      annaInZweiPartien = true;
+    });
+    ziehWeiter(anna);
+    await kurzWarten(150);
+
+    const fehler = warteAuf(ben, 'fehler');
+    ben.emit('revanche');
+    assert.match(await fehler, /nicht mehr möglich/, 'Ben bekommt eine verstaendliche Absage');
+
+    await kurzWarten(200);
+    assert.equal(annaInZweiPartien, false, 'Anna wird nicht in eine Revanche gezogen');
+  });
+}
+
+test('Revanche: hat der Gegner schon zugesagt, erfaehrt er, dass man weiterzieht', async () => {
+  const partie = await startePartie();
+  const { anna, ben } = partie;
+  await spieleZuEnde(partie);
+
+  const benWartet = warteAuf(ben, 'revancheWartet');
+  ben.emit('revanche');
+  await benWartet;
+
+  const abgesagt = warteAuf(ben, 'revancheGeplatzt');
+  anna.emit('warteschlangeBetreten');
+  assert.ok(await abgesagt, 'Ben wartet nicht ewig');
+});
+
 test('wer nie angemeldet war, kommt weder in die Lobby noch ins Spiel', async () => {
   const fremder = await neuerClient();
 
   for (const [ereignis, daten] of [
-    ['revanche'], ['zurLobby'], ['warteschlangeBetreten'],
+    ['revanche'],
+    ['zurLobby'],
+    ['warteschlangeBetreten'],
     ['lobbyErstellen', { modus: 'zufall', passwort: 'geheim' }],
     ['lobbyBeitreten', { lobbyId: 'x', passwort: 'geheim' }],
   ]) {
@@ -797,7 +916,7 @@ test('wer nie angemeldet war, kommt weder in die Lobby noch ins Spiel', async ()
 // Lobby: Warteschlange und private Lobbys
 // --------------------------------------------------------------------------
 
-/** Meldet einen Client an und eroeffnet fuer ihn eine private Lobby. */
+/** Meldet einen Client an und eröffnet für ihn eine private Lobby. */
 async function eroeffneLobby(name, passwort = 'geheim') {
   const client = await neuerClient();
   await anmelden(client, name);
@@ -825,7 +944,9 @@ test('wer die Warteschlange verlaesst, steht wieder in der Lobby und wird nicht 
   await zurueck;
 
   let annaSpielt = false;
-  anna.on('spielStart', () => { annaSpielt = true; });
+  anna.on('spielStart', () => {
+    annaSpielt = true;
+  });
   const ben = await neuerClient();
   await anmelden(ben, 'Ben');
   await inWarteschlange(ben); // Ben wartet - statt gegen Anna zu spielen
@@ -863,7 +984,10 @@ test('private Lobby: mit falschem Passwort kommt man nicht hinein', async () => 
   const { client: jonas, lobby } = await besucherMitBlickAuf('Jonas', 'Lena');
 
   let gestartet = false;
-  for (const c of [lena, jonas]) c.on('spielStart', () => { gestartet = true; });
+  for (const c of [lena, jonas])
+    c.on('spielStart', () => {
+      gestartet = true;
+    });
 
   const abgelehnt = warteAuf(jonas, 'beitrittAbgelehnt');
   jonas.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort: 'falsch' });
@@ -874,7 +998,6 @@ test('private Lobby: mit falschem Passwort kommt man nicht hinein', async () => 
 });
 
 test('private Lobby: mit richtigem Passwort startet die Partie fuer beide', async () => {
-  const bisher = protokollierteLoesungen().length;
   const { client: lena } = await eroeffneLobby('Lena', 'richtig');
   const { client: jonas, lobby } = await besucherMitBlickAuf('Jonas', 'Lena');
 
@@ -888,7 +1011,6 @@ test('private Lobby: mit richtigem Passwort startet die Partie fuer beide', asyn
   assert.equal(infoLena.modus, 'zufall');
   assert.equal(infoJonas.modus, 'zufall');
   assert.notEqual(infoLena.duBistDran, infoJonas.duBistDran, 'genau einer ist dran');
-  await warteAufProtokoll(bisher);
 });
 
 test('eine besetzte Lobby verschwindet aus der Liste der anderen', async () => {
@@ -902,18 +1024,27 @@ test('eine besetzte Lobby verschwindet aus der Liste der anderen', async () => {
   await Promise.all([leer, start]);
 });
 
-test('treten zwei mit richtigem Passwort bei, ist fuer den zweiten die Lobby voll', async () => {
+// Das Passwort wird asynchron gehasht - welche Prüfung zuerst fertig ist,
+// steht nicht fest. Der Test verlangt deshalb nur: genau EINER kommt rein,
+// der andere bekommt "voll".
+test('treten zwei gleichzeitig mit richtigem Passwort bei, kommt genau einer rein', async () => {
   await eroeffneLobby('Lena', 'richtig');
   const { client: jonas, lobby } = await besucherMitBlickAuf('Jonas', 'Lena');
   const { client: aylin } = await besucherMitBlickAuf('Aylin', 'Lena');
 
-  const startJonas = warteAuf(jonas, 'spielStart');
-  const abgelehnt = warteAuf(aylin, 'beitrittAbgelehnt');
+  /** Was bei diesem Client zuerst ankommt: Spielstart oder Ablehnung. */
+  const ausgang = (client) =>
+    new Promise((erfuellen) => {
+      client.once('spielStart', () => erfuellen('drin'));
+      client.once('beitrittAbgelehnt', ({ grund }) => erfuellen(grund));
+    });
+  const beiJonas = ausgang(jonas);
+  const beiAylin = ausgang(aylin);
   jonas.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort: 'richtig' });
   aylin.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort: 'richtig' });
 
-  await startJonas;
-  assert.deepEqual(await abgelehnt, { grund: 'voll' });
+  const ergebnisse = (await Promise.all([beiJonas, beiAylin])).sort();
+  assert.deepEqual(ergebnisse, ['drin', 'voll']);
 });
 
 test('nach fuenf falschen Passwoertern sperrt der Server - auch das richtige', async () => {
@@ -927,7 +1058,75 @@ test('nach fuenf falschen Passwoertern sperrt der Server - auch das richtige', a
     gruende.push((await antwort).grund);
   }
 
-  assert.deepEqual(gruende, ['passwort', 'passwort', 'passwort', 'passwort', 'passwort', 'gesperrt']);
+  assert.deepEqual(gruende, [
+    'passwort',
+    'passwort',
+    'passwort',
+    'passwort',
+    'passwort',
+    'gesperrt',
+  ]);
+});
+
+// Neu verbinden darf die Sperre nicht aufheben. Alle Test-Clients
+// kommen von derselben Adresse (localhost) - genau wie ein neu geladener Tab.
+test('die Sperre bleibt, auch wenn man die Verbindung trennt und neu verbindet', async () => {
+  await eroeffneLobby('Lena', 'richtig');
+  const { client: jonas, lobby } = await besucherMitBlickAuf('Jonas', 'Lena');
+
+  for (const passwort of ['f1xx', 'f2xx', 'f3xx', 'f4xx', 'f5xx']) {
+    const antwort = warteAuf(jonas, 'beitrittAbgelehnt');
+    jonas.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort });
+    await antwort;
+  }
+  jonas.disconnect();
+
+  const { client: jonasNeu } = await besucherMitBlickAuf('Jonas', 'Lena');
+  const antwort = warteAuf(jonasNeu, 'beitrittAbgelehnt');
+  jonasNeu.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort: 'richtig' });
+  assert.deepEqual(await antwort, { grund: 'gesperrt' });
+});
+
+// Alle Test-Clients kommen von localhost - wie 50 Tabs eines
+// Angreifers. Die vierte offene Lobby von dort wird abgelehnt.
+test('hoechstens drei offene Lobbys von derselben Adresse', async () => {
+  for (const name of ['Tab1', 'Tab2', 'Tab3']) await eroeffneLobby(name);
+
+  const vierter = await neuerClient();
+  await anmelden(vierter, 'Tab4');
+  const abgelehnt = warteAuf(vierter, 'erstellenAbgelehnt');
+  vierter.emit('lobbyErstellen', { modus: 'zufall', passwort: 'geheim' });
+  assert.deepEqual(await abgelehnt, { grund: 'zuVieleVonDir' });
+});
+
+// Hinter Caddy (HTTPS auf dem DHBW-Server) kommen alle Verbindungen von
+// 127.0.0.1. Die echte Adresse steht in X-Forwarded-For - sonst teilte sich
+// der ganze Kurs die Grenze von 3 Lobbys.
+test('hinter dem Proxy zaehlt die weitergeleitete Adresse, nicht 127.0.0.1', async () => {
+  async function lobbyVon(name, weitergeleitet) {
+    const client = await neuerClient(adresse, { 'x-forwarded-for': weitergeleitet });
+    await anmelden(client, name);
+    const antwort = new Promise((erfuellen) => {
+      client.once('lobbyErstellt', () => erfuellen('erstellt'));
+      client.once('erstellenAbgelehnt', ({ grund }) => erfuellen(grund));
+    });
+    client.emit('lobbyErstellen', { modus: 'zufall', passwort: 'geheim' });
+    return antwort;
+  }
+
+  for (const name of ['Lea', 'Max', 'Ida']) {
+    assert.equal(await lobbyVon(name, '2001:db8::a'), 'erstellt');
+  }
+  assert.equal(
+    await lobbyVon('Tom', '2001:db8::a'),
+    'zuVieleVonDir',
+    'vierte Lobby derselben Person',
+  );
+  assert.equal(
+    await lobbyVon('Eva', '2001:db8::b'),
+    'erstellt',
+    'eine andere Person hinter demselben Proxy',
+  );
 });
 
 test('einer Lobby, die es nicht gibt, kann man nicht beitreten', async () => {
@@ -964,7 +1163,7 @@ test('die eigene wartende Lobby steht nicht in der eigenen Liste', async () => {
   const listenBeiLena = [];
   lena.on('lobbyListe', (l) => listenBeiLena.push(l));
 
-  await eroeffneLobby('Ben'); // eine Aenderung, die alle in der Lobby erfahren
+  await eroeffneLobby('Ben'); // eine Änderung, die alle in der Lobby erfahren
   await kurzWarten();
 
   assert.equal(listenBeiLena.length, 0, 'wer in seiner Lobby wartet, ist nicht im Raum "lobby"');
@@ -1006,7 +1205,15 @@ test('kaputte Lobby-Nutzlasten bringen den Server nicht zum Absturz', async () =
   const client = await neuerClient();
   await anmelden(client, 'Kaputt');
 
-  for (const daten of [undefined, null, 42, 'text', [], { lobbyId: { x: 1 } }, { passwort: ['a'] }]) {
+  for (const daten of [
+    undefined,
+    null,
+    42,
+    'text',
+    [],
+    { lobbyId: { x: 1 } },
+    { passwort: ['a'] },
+  ]) {
     client.emit('lobbyBeitreten', daten);
     client.emit('lobbyErstellen', daten);
     await kurzWarten(120);
@@ -1016,19 +1223,17 @@ test('kaputte Lobby-Nutzlasten bringen den Server nicht zum Absturz', async () =
 });
 
 test('nach einer Lobby-Partie gibt es die Lobby nicht mehr - Revanche geht trotzdem', async () => {
-  const bisher = protokollierteLoesungen().length;
   const { client: lena } = await eroeffneLobby('Lena', 'richtig');
   const { client: jonas, lobby } = await besucherMitBlickAuf('Jonas', 'Lena');
 
   const startLena = warteAuf(lena, 'spielStart');
   jonas.emit('lobbyBeitreten', { lobbyId: lobby.id, passwort: 'richtig' });
   const infoLena = await startLena;
-  aktuelleLoesung = await warteAufProtokoll(bisher);
 
   const amZug = infoLena.duBistDran ? lena : jonas;
   await spieleZuEnde({ anna: lena, ben: jonas, amZug });
 
-  // Die Lobby ist mit dem Spielende verschwunden: Lena darf sofort eine neue eroeffnen.
+  // Die Lobby ist mit dem Spielende verschwunden: Lena darf sofort eine neue eröffnen.
   const revanche = warteAuf(lena, 'spielStart');
   jonas.emit('revanche');
   lena.emit('revanche');
@@ -1059,7 +1264,7 @@ async function starteDuell() {
   return { lena, jonas };
 }
 
-/** Beide waehlen, liefert die Info aus "duellStart" fuer beide. */
+/** Beide wählen, liefert die Info aus "duellStart" für beide. */
 async function waehleBeide(lena, jonas, fuerJonas, fuerLena) {
   const startLena = warteAuf(lena, 'duellStart');
   const startJonas = warteAuf(jonas, 'duellStart');
@@ -1107,7 +1312,10 @@ test('Duell: der Gegner erfaehrt nur, DASS gewaehlt wurde - nicht was', async ()
   assert.equal(await hinweis, undefined, 'keine Nutzdaten');
   await kurzWarten();
 
-  assert.ok(!JSON.stringify(nachrichtenJonas).includes(geheim), 'Lenas Wahl bleibt bei Jonas geheim');
+  assert.ok(
+    !JSON.stringify(nachrichtenJonas).includes(geheim),
+    'Lenas Wahl bleibt bei Jonas geheim',
+  );
 });
 
 test('Duell: jeder raet auf das Tier, das der andere fuer ihn gewaehlt hat', async () => {
@@ -1118,14 +1326,14 @@ test('Duell: jeder raet auf das Tier, das der andere fuer ihn gewaehlt hat', asy
   assert.notEqual(infoLena.duBistDran, infoJonas.duBistDran, 'genau einer faengt an');
 
   let [dran, andere] = infoLena.duBistDran ? [lena, jonas] : [jonas, lena];
-  // Wer dran ist, raet zuerst das Tier des ANDEREN - das ist fuer ihn falsch.
+  // Wer dran ist, rät zuerst das Tier des ANDEREN - das ist für ihn falsch.
   const tierDesAnderen = dran === lena ? fuerJonas : fuerLena;
   const ersterZug = warteAuf(dran, 'zug');
   dran.emit('raten', tierDesAnderen);
   assert.equal((await ersterZug).richtig, false, 'das Tier des Gegners ist nicht das eigene');
   [dran, andere] = [andere, dran];
 
-  // Jetzt raet der andere sein eigenes Tier - und gewinnt.
+  // Jetzt rät der andere sein eigenes Tier - und gewinnt.
   const eigenesTier = dran === lena ? fuerLena : fuerJonas;
   const endeDran = warteAuf(dran, 'spielEnde');
   const endeAndere = warteAuf(andere, 'spielEnde');
@@ -1135,8 +1343,11 @@ test('Duell: jeder raet auf das Tier, das der andere fuer ihn gewaehlt hat', asy
   assert.equal(beimGewinner.duHastGewonnen, true);
   assert.equal(beimGewinner.geheimnis.name, eigenesTier);
   assert.equal(beimVerlierer.duHastGewonnen, false);
-  assert.equal(beimVerlierer.geheimnis.name, andere === lena ? fuerLena : fuerJonas,
-    'der Verlierer erfaehrt das Tier, das ER gesucht hat');
+  assert.equal(
+    beimVerlierer.geheimnis.name,
+    andere === lena ? fuerLena : fuerJonas,
+    'der Verlierer erfaehrt das Tier, das ER gesucht hat',
+  );
 });
 
 test('Duell: ein Tier, das der Gegner geraten hat, darf man selbst noch raten', async () => {
@@ -1148,7 +1359,7 @@ test('Duell: ein Tier, das der Gegner geraten hat, darf man selbst noch raten', 
   const [dran, andere] = infoLena.duBistDran ? [lena, jonas] : [jonas, lena];
   const tierDesAnderen = andere === lena ? fuerLena : fuerJonas;
 
-  // Der Erste raet ausgerechnet das Tier, das der Zweite sucht.
+  // Der Erste rät ausgerechnet das Tier, das der Zweite sucht.
   const zug = warteAuf(andere, 'zug');
   dran.emit('raten', tierDesAnderen);
   await zug;
@@ -1188,7 +1399,7 @@ test('Duell: eine Revanche beginnt wieder mit der Wahl', async () => {
 });
 
 // --------------------------------------------------------------------------
-// Oeffentliche Warteschlange mit Moduswahl
+// Öffentliche Warteschlange mit Moduswahl
 // --------------------------------------------------------------------------
 
 test('Warteschlange: zwei Spieler mit Duell spielen ein Duell', async () => {
@@ -1219,7 +1430,10 @@ test('Warteschlange: Zufallstier und Duell werden nicht miteinander gepaart', as
   await anmelden(anna, 'Anna');
   await anmelden(ben, 'Ben');
   let gestartet = false;
-  for (const c of [anna, ben]) c.on('spielStart', () => { gestartet = true; });
+  for (const c of [anna, ben])
+    c.on('spielStart', () => {
+      gestartet = true;
+    });
 
   const wartetAnna = warteAuf(anna, 'warten');
   anna.emit('warteschlangeBetreten', { modus: 'zufall' });
@@ -1248,14 +1462,14 @@ test('Warteschlange: ein unbekannter Modus wird abgelehnt', async () => {
 // Zugzeit
 // --------------------------------------------------------------------------
 //
-// Fuer die meisten Zugzeit-Tests laeuft ein ZWEITER Server, dessen Uhr
+// Für die meisten Zugzeit-Tests läuft ein ZWEITER Server, dessen Uhr
 // schneller geht: ZUGZEIT_MS_PRO_SEKUNDE=50 macht aus 10 Sekunden 0,5
-// Sekunden. Der normale Testserver bleibt unveraendert - sonst liefe in
+// Sekunden. Der normale Testserver bleibt unverändert - sonst liefe in
 // jedem anderen Test nach einer halben Sekunde die Zeit ab.
 
 const MS_PRO_SEKUNDE_SCHNELL = 50;
 
-/** Startet den schnellen Server einmal fuer alle Zugzeit-Tests. */
+/** Startet den schnellen Server einmal für alle Zugzeit-Tests. */
 let schnellerServer;
 async function schnelleAdresse() {
   if (schnellerServer) return schnellerServer.adresse;
@@ -1269,7 +1483,10 @@ async function schnelleAdresse() {
     let log = '';
     prozess.stdout.on('data', (brocken) => {
       log += brocken.toString();
-      if (log.includes('Zoodle laeuft')) { clearTimeout(uhr); erfuellen(); }
+      if (log.includes('Zoodle laeuft')) {
+        clearTimeout(uhr);
+        erfuellen();
+      }
     });
   });
   schnellerServer = { prozess, adresse: `http://localhost:${port}` };
@@ -1277,7 +1494,7 @@ async function schnelleAdresse() {
 }
 after(() => schnellerServer?.prozess.kill('SIGKILL'));
 
-/** Oeffentliche Partie auf dem schnellen Server. */
+/** Öffentliche Partie auf dem schnellen Server. */
 async function schnellePartie() {
   const ziel = await schnelleAdresse();
   const anna = await neuerClient(ziel);
@@ -1289,7 +1506,13 @@ async function schnellePartie() {
   const startBen = warteAuf(ben, 'spielStart');
   ben.emit('warteschlangeBetreten');
   const [infoAnna] = await Promise.all([startAnna, startBen]);
-  return { anna, ben, infoAnna, amZug: infoAnna.duBistDran ? anna : ben, wartend: infoAnna.duBistDran ? ben : anna };
+  return {
+    anna,
+    ben,
+    infoAnna,
+    amZug: infoAnna.duBistDran ? anna : ben,
+    wartend: infoAnna.duBistDran ? ben : anna,
+  };
 }
 
 /** Private Lobby mit Zugzeit auf einem Server (Standard: dem schnellen). */
@@ -1355,18 +1578,23 @@ test('Zugzeit: ein rechtzeitiger Tipp zaehlt und startet die Frist des Gegners',
   const daten = await zug;
 
   assert.equal(daten.duBistDran, true);
-  assert.ok(daten.restzeitMs > 0 && daten.restzeitMs <= 10 * MS_PRO_SEKUNDE_SCHNELL, `restzeitMs ${daten.restzeitMs}`);
+  assert.ok(
+    daten.restzeitMs > 0 && daten.restzeitMs <= 10 * MS_PRO_SEKUNDE_SCHNELL,
+    `restzeitMs ${daten.restzeitMs}`,
+  );
 });
 
 test('Zugzeit: private Lobby mit 30 Sekunden - Liste, Partie und Revanche', async () => {
-  const bisher = protokollierteLoesungen().length;
-  const { lena, jonas, infoLena, infoErstellt, lobby } = await lobbyPartie({ zugzeit: 30, ziel: adresse });
+  const { lena, jonas, infoLena, infoErstellt, lobby } = await lobbyPartie({
+    zugzeit: 30,
+    ziel: adresse,
+  });
   assert.equal(infoErstellt.zugzeit, 30);
   assert.equal(lobby.zugzeit, 30, 'die Liste nennt die Zugzeit');
   assert.equal(infoLena.zugzeit, 30);
 
   // Zu Ende spielen und Revanche: die Zugzeit bleibt.
-  const loesung = await warteAufProtokoll(bisher);
+  const loesung = gesuchtesTier();
   const dran = infoLena.duBistDran ? lena : jonas;
   const ende = warteAuf(dran, 'spielEnde');
   dran.emit('raten', loesung);
@@ -1383,8 +1611,11 @@ test('Zugzeit: ohne Zeitlimit laeuft keine Uhr', async () => {
   assert.equal(infoLena.restzeitMs, null);
 
   let abgelaufen = false;
-  for (const c of [lena, jonas]) c.on('zeitAbgelaufen', () => { abgelaufen = true; });
-  await kurzWarten(15 * MS_PRO_SEKUNDE_SCHNELL); // laenger als 10 "Sekunden"
+  for (const c of [lena, jonas])
+    c.on('zeitAbgelaufen', () => {
+      abgelaufen = true;
+    });
+  await kurzWarten(15 * MS_PRO_SEKUNDE_SCHNELL); // länger als 10 "Sekunden"
   assert.equal(abgelaufen, false);
 });
 
@@ -1398,14 +1629,21 @@ test('Zugzeit: ungueltige Werte werden abgelehnt', async () => {
   }
 });
 
-test('Zugzeit: im Duell laeuft waehrend der Wahl keine Frist', async () => {
+test('Zugzeit: im Duell laeuft waehrend der Wahl die Wahlfrist, nicht die Zugzeit', async () => {
   const { lena, jonas, infoLena } = await lobbyPartie({ zugzeit: 10, modus: 'duell' });
-  assert.equal(infoLena.restzeitMs, null, 'fuers Aussuchen gibt es keine Frist');
+  assert.equal(infoLena.wahlzeit, 60);
+  assert.ok(
+    infoLena.restzeitMs > 10 * MS_PRO_SEKUNDE_SCHNELL,
+    'die Wahlfrist ist laenger als ein Zug',
+  );
 
   let abgelaufen = false;
-  for (const c of [lena, jonas]) c.on('zeitAbgelaufen', () => { abgelaufen = true; });
+  for (const c of [lena, jonas])
+    c.on('zeitAbgelaufen', () => {
+      abgelaufen = true;
+    });
   await kurzWarten(15 * MS_PRO_SEKUNDE_SCHNELL);
-  assert.equal(abgelaufen, false);
+  assert.equal(abgelaufen, false, 'waehrend der Wahl gibt es keinen Zugwechsel');
 
   const duellStart = warteAuf(lena, 'duellStart');
   lena.emit('tierWaehlen', alleTiere[0].name);
@@ -1414,10 +1652,101 @@ test('Zugzeit: im Duell laeuft waehrend der Wahl keine Frist', async () => {
   assert.ok((await duellStart).restzeitMs > 0, 'nach der Wahl beginnt die Frist');
 });
 
+// Die Wahlfrist (60 "Sekunden", auf dem schnellen Server 3 s).
+const WAHLFRIST_TESTLIMIT = 70 * MS_PRO_SEKUNDE_SCHNELL;
+
+test('Wahlfrist: wer gewaehlt hat, gewinnt - wer nicht gewaehlt hat, verliert', async () => {
+  const { lena, jonas } = await lobbyPartie({ zugzeit: 10, modus: 'duell' });
+
+  lena.emit('tierWaehlen', alleTiere[0].name);
+  const { restzeitMs } = await warteAuf(lena, 'tierGewaehlt');
+  assert.ok(restzeitMs > 0, 'nach der eigenen Wahl zeigt die Uhr die Zeit des Gegners');
+
+  const [beiLena, beiJonas] = await Promise.all([
+    warteAuf(lena, 'wahlAbgelaufen', WAHLFRIST_TESTLIMIT),
+    warteAuf(jonas, 'wahlAbgelaufen', WAHLFRIST_TESTLIMIT),
+  ]);
+  assert.equal(beiLena.duHastGewonnen, true);
+  assert.equal(beiJonas.duHastGewonnen, false);
+
+  // Die Partie ist wirklich vorbei: Wählen geht nicht mehr.
+  const fehler = warteAuf(jonas, 'fehler');
+  jonas.emit('tierWaehlen', alleTiere[1].name);
+  assert.match(await fehler, /kein Tier zu wählen/);
+});
+
+test('Wahlfrist: hat keiner gewaehlt, gibt es keinen Sieger', async () => {
+  const { lena, jonas } = await lobbyPartie({ zugzeit: 10, modus: 'duell' });
+  const [beiLena, beiJonas] = await Promise.all([
+    warteAuf(lena, 'wahlAbgelaufen', WAHLFRIST_TESTLIMIT),
+    warteAuf(jonas, 'wahlAbgelaufen', WAHLFRIST_TESTLIMIT),
+  ]);
+  assert.equal(beiLena.duHastGewonnen, null);
+  assert.equal(beiJonas.duHastGewonnen, null);
+});
+
+test('Wahlfrist: ohne Zeitlimit gibt es auch keine Wahlfrist', async () => {
+  const { lena, jonas, infoLena } = await lobbyPartie({ zugzeit: 0, modus: 'duell' });
+  assert.equal(infoLena.restzeitMs, null);
+
+  let abgelaufen = false;
+  for (const c of [lena, jonas])
+    c.on('wahlAbgelaufen', () => {
+      abgelaufen = true;
+    });
+  await kurzWarten(WAHLFRIST_TESTLIMIT);
+  assert.equal(abgelaufen, false);
+});
+
+test('aufgeben: der Gegner erfaehrt es, wer geht, steht wieder in der Lobby', async () => {
+  const { lena, jonas } = await lobbyPartie({ zugzeit: 10, modus: 'duell' });
+
+  const weg = warteAuf(jonas, 'gegnerWeg');
+  const inLobby = warteAuf(lena, 'lobbyBetreten');
+  lena.emit('aufgeben');
+  const [daten] = await Promise.all([weg, inLobby]);
+  assert.equal(daten.aufgegeben, true, 'Jonas liest "verlassen", nicht "Verbindung verloren"');
+
+  // Keine Wahlfrist mehr für die beendete Partie.
+  let abgelaufen = false;
+  jonas.on('wahlAbgelaufen', () => {
+    abgelaufen = true;
+  });
+  await kurzWarten(WAHLFRIST_TESTLIMIT);
+  assert.equal(abgelaufen, false);
+
+  // Und keine Revanche mit jemandem, der gerade gegangen ist.
+  const fehler = warteAuf(jonas, 'fehler');
+  jonas.emit('revanche');
+  assert.match(await fehler, /nicht mehr möglich/);
+});
+
+// In einer Lobby ohne Zeitlimit kann der Gegner ewig nicht
+// raten. Aufgeben muss deshalb auch in der Ratephase gehen.
+test('aufgeben: auch mitten im Raten ohne Zeitlimit', async () => {
+  const { lena, jonas } = await lobbyPartie({ zugzeit: 0, ziel: adresse });
+  const weg = warteAuf(lena, 'gegnerWeg');
+  const inLobby = warteAuf(jonas, 'lobbyBetreten');
+  jonas.emit('aufgeben');
+  const [daten] = await Promise.all([weg, inLobby]);
+  assert.equal(daten.aufgegeben, true);
+  assert.equal(daten.geheimnis.name, gesuchtesTier(), 'wer bleibt, erfaehrt die Loesung');
+});
+
+test('aufgeben: wer in keiner Partie ist, kann auch keine beenden', async () => {
+  const client = await neuerClient();
+  await anmelden(client, 'Niemand');
+  const fehler = warteAuf(client, 'fehler');
+  client.emit('aufgeben');
+  assert.match(await fehler, /keiner laufenden Partie/);
+});
+
 test('Zugzeit: trennt sich ein Spieler, laeuft keine Frist mehr ab', async () => {
   const { amZug, wartend } = await schnellePartie();
   let abgelaufen = false;
-  wartend.on('zeitAbgelaufen', () => { abgelaufen = true; });
+  wartend.on('zeitAbgelaufen', () => {
+    abgelaufen = true;
+  });
 
   const weg = warteAuf(wartend, 'gegnerWeg');
   amZug.disconnect();
@@ -1436,7 +1765,8 @@ async function duellInRatephase() {
   const { lena, jonas } = await starteDuell();
   const { infoLena } = await waehleBeide(lena, jonas, alleTiere[3].name, alleTiere[7].name);
   return {
-    lena, jonas,
+    lena,
+    jonas,
     dran: infoLena.duBistDran ? lena : jonas,
     wartend: infoLena.duBistDran ? jonas : lena,
     zielVon: (c) => (c === lena ? alleTiere[7].name : alleTiere[3].name),
@@ -1488,7 +1818,7 @@ test('tippt: hoechstens eine Weiterleitung pro Sekunde', async () => {
   const signale = sammleTippen(wartend);
   for (let i = 0; i < 5; i++) {
     dran.emit('tippt');
-    await kurzWarten(100); // langsam genug fuer die Nachrichtenbremse
+    await kurzWarten(100); // langsam genug für die Nachrichtenbremse
   }
   assert.equal(signale.length, 1, '5 Signale in einer halben Sekunde -> 1 Weiterleitung');
 
@@ -1503,15 +1833,25 @@ test('anzahlTipps: im Duell zaehlen nur die Tipps des Gewinners', async () => {
 
   // dran: falsch (1) · wartend: falsch (1) · dran: richtig (2)
   let zug = warteAuf(wartend, 'zug');
-  dran.emit('raten', alleTiere[20].name === zielVon(dran) ? alleTiere[21].name : alleTiere[20].name);
+  dran.emit(
+    'raten',
+    alleTiere[20].name === zielVon(dran) ? alleTiere[21].name : alleTiere[20].name,
+  );
   await zug;
   zug = warteAuf(dran, 'zug');
-  wartend.emit('raten', alleTiere[22].name === zielVon(wartend) ? alleTiere[23].name : alleTiere[22].name);
+  wartend.emit(
+    'raten',
+    alleTiere[22].name === zielVon(wartend) ? alleTiere[23].name : alleTiere[22].name,
+  );
   await zug;
 
   const ende = warteAuf(dran, 'spielEnde');
   const endeVerlierer = warteAuf(wartend, 'spielEnde');
   dran.emit('raten', zielVon(dran));
   assert.equal((await ende).anzahlTipps, 2, 'der Gewinner brauchte 2 Tipps - nicht 3');
-  assert.equal((await endeVerlierer).anzahlTipps, 2, 'auch der Verlierer bekommt die Zahl des Gewinners');
+  assert.equal(
+    (await endeVerlierer).anzahlTipps,
+    2,
+    'auch der Verlierer bekommt die Zahl des Gewinners',
+  );
 });

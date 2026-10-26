@@ -2,16 +2,16 @@
  * Wird von "npm run build" aufgerufen.
  *
  * Vorgabe des Dozenten: In CSS darf nirgends "!important" stehen, sonst gibt
- * es keine Punkte. Diese Pruefung macht den Verstoss unmoeglich - sobald die
+ * es keine Punkte. Diese Prüfung macht den Verstoß unmöglich - sobald die
  * Zeichenfolge irgendwo unter public/ auftaucht, bricht der Build ab.
  *
- * Geprueft werden nicht nur .css-Dateien, sondern auch HTML (style-Attribute)
- * und JavaScript: Auch dort liesse sich die Regel sonst durch die Hintertuer
+ * Geprüft werden nicht nur .css-Dateien, sondern auch HTML (style-Attribute)
+ * und JavaScript: Auch dort ließe sich die Regel sonst durch die Hintertür
  * wieder einschleusen.
  *
- * Aufruf:  node scripts/pruefe-important.js            prueft public/
- *          node scripts/pruefe-important.js <ordner>   prueft <ordner>
- *                                                      (fuer die Tests)
+ * Aufruf:  node scripts/pruefe-important.js            prüft public/
+ *          node scripts/pruefe-important.js <ordner>   prüft <ordner>
+ *                                                      (für die Tests)
  */
 
 import { readdirSync, readFileSync } from 'node:fs';

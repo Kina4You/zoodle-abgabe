@@ -1,7 +1,7 @@
 /**
  * Tests der Partienverwaltung.
  *
- * Die Verwaltung kennt kein Socket.io - deshalb laesst sie sich hier mit
+ * Die Verwaltung kennt kein Socket.io - deshalb lässt sie sich hier mit
  * einfachen Zeichenketten als Spielerkennungen testen, ohne Server.
  */
 
@@ -21,6 +21,13 @@ test('der erste Spieler wartet, der zweite startet die Partie', () => {
   assert.deepEqual([...spiel.spielerIds].sort(), ['anna', 'ben']);
   assert.equal(v.wartetJemand, false);
   assert.equal(v.anzahlPartien, 1);
+});
+
+test('das Geheimnis laesst sich fuer Tests vorgeben (ZOODLE_TESTTIER)', () => {
+  const festesTier = { name: 'Testtier' };
+  const v = new Partienverwaltung({ waehleGeheimnis: () => festesTier });
+  v.suchePartie('anna');
+  assert.equal(v.suchePartie('ben').geheimnis, festesTier);
 });
 
 test('beide Spieler finden ihre gemeinsame Partie', () => {
@@ -105,7 +112,7 @@ test('nach dem Beenden raeumt die Verwaltung sauber auf', () => {
 // Revanche
 // --------------------------------------------------------------------------
 
-/** Spielt eine Partie zwischen Anna und Ben und beendet sie regulaer. */
+/** Spielt eine Partie zwischen Anna und Ben und beendet sie regulär. */
 function beendetePartie() {
   const v = new Partienverwaltung();
   v.suchePartie('anna');
@@ -165,8 +172,8 @@ test('verschwindet der Gegner, ist die Revanche hinfaellig', () => {
   const { v } = beendetePartie();
   v.stimmeRevancheZu('anna');
 
-  // Vor dem Aufraeumen muss erkennbar sein, wer vergeblich wartet -
-  // sonst weiss der Server nicht, wem er absagen soll.
+  // Vor dem Aufräumen muss erkennbar sein, wer vergeblich wartet -
+  // sonst weiß der Server nicht, wem er absagen soll.
   assert.equal(v.wartetAufRevancheMit('ben'), 'anna');
 
   v.entferne('ben');
@@ -175,7 +182,7 @@ test('verschwindet der Gegner, ist die Revanche hinfaellig', () => {
   assert.equal(v.anzahlPartien, 0);
 
   // Annas Notiz zeigt jetzt ins Leere. Das ist harmlos - sie verschwindet,
-  // sobald Anna sich ihrerseits neu orientiert oder die Seite verlaesst.
+  // sobald Anna sich ihrerseits neu orientiert oder die Seite verlässt.
   assert.equal(v.anzahlRevancheNotizen, 1);
   v.vergissRevanche('anna');
   assert.equal(v.anzahlRevancheNotizen, 0);
@@ -309,5 +316,9 @@ test('trennt sich ein Wartender, wird seine Warteschlange frei', () => {
   const v = new Partienverwaltung();
   v.suchePartie('ben', 'duell');
   v.entferne('ben');
-  assert.equal(v.suchePartie('cleo', 'duell'), null, 'Cleo wartet - statt gegen einen Geist zu spielen');
+  assert.equal(
+    v.suchePartie('cleo', 'duell'),
+    null,
+    'Cleo wartet - statt gegen einen Geist zu spielen',
+  );
 });

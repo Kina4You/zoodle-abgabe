@@ -1,0 +1,5 @@
+node_modules/
+Claude outputs/
+package-lock.json
+data/tiere.json
+public/fonts/

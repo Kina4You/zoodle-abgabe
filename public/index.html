@@ -1,470 +1,834 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Zoodle – Errate das Tier</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zoodle – Errate das Tier</title>
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 
-  <!-- CSS ist in Module aufgeteilt: Schriften, Tokens, Grundlagen, Bausteine, Spielfeld, Lobby, Duell. -->
-  <link rel="stylesheet" href="css/schriften.css">
-  <link rel="stylesheet" href="css/tokens.css">
-  <link rel="stylesheet" href="css/basis.css">
-  <link rel="stylesheet" href="css/komponenten.css">
-  <link rel="stylesheet" href="css/spielfeld.css">
-  <link rel="stylesheet" href="css/lobby.css">
-  <link rel="stylesheet" href="css/duell.css">
-  <link rel="stylesheet" href="css/szene.css">
-</head>
-<body>
-
-  <!-- Ansagen fuer Screenreader: neuer Tipp, Zugwechsel, Spielende.
+    <link rel="stylesheet" href="css/schriften.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/basis.css" />
+    <link rel="stylesheet" href="css/komponenten.css" />
+    <link rel="stylesheet" href="css/spielfeld.css" />
+    <link rel="stylesheet" href="css/lobby.css" />
+    <link rel="stylesheet" href="css/duell.css" />
+    <link rel="stylesheet" href="css/szene.css" />
+  </head>
+  <body>
+    <!-- Ansagen für Screenreader: neuer Tipp, Zugwechsel, Spielende.
        Die Region muss schon beim Laden leer im Dokument stehen - eine erst
-       spaeter eingefuegte Live-Region wuerden manche Screenreader ueberhoeren.
-       Gefuellt wird sie ausschliesslich ueber sage() in client.js. Solange ein
+       später eingefügte Live-Region würden manche Screenreader überhören.
+       Gefüllt wird sie ausschließlich über sage() in client.js. Solange ein
        Dialog offen ist, nutzt sage() stattdessen die Region IM Dialog (siehe
-       "dialog__ansage" unten) - alles ausserhalb ist dann fuer Screenreader
+       "dialog__ansage" unten) - alles außerhalb ist dann für Screenreader
        gesperrt. -->
-  <p class="nur-sr" id="ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="nur-sr" id="ansage" role="status" aria-live="polite" aria-atomic="true"></p>
 
-  <div class="seite">
-
-    <header class="kopf">
-      <div class="kopf__marke">
-        <div class="kopf__zeile">
-          <span class="kopf__logo" aria-hidden="true">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                 stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11.25 16.25h1.5L12 17z"></path>
-              <path d="M16 14v.5"></path>
-              <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309"></path>
-              <path d="M8 14v.5"></path>
-              <path d="M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"></path>
-            </svg>
-          </span>
-          <h1 class="kopf__titel">Zoodle</h1>
-        </div>
-        <p class="kopf__untertitel">
-          Zwei Spieler, ein gesuchtes Tier. Jeder Tipp verrät, was passt und was nicht.
-        </p>
-      </div>
-
-      <button class="knopf knopf--sekundaer" id="regeln-knopf"
-              type="button" aria-expanded="false" aria-controls="regeln">Spielregeln</button>
-    </header>
-
-    <section class="karte" id="regeln" aria-labelledby="regeln-titel" hidden>
-      <h2 class="karte__kicker" id="regeln-titel">So geht's</h2>
-      <p>
-        Ihr ratet <strong>abwechselnd</strong> auf dasselbe geheime Tier und seht beide alle
-        Tipps. Für jede Eigenschaft bekommst du eine Farbe und ein Zeichen:
-        <strong>Grün mit ✓</strong> heißt genau richtig, <strong>Orange mit ~</strong> heißt
-        nah dran, <strong>Beige mit ✕</strong> heißt falsch. Bei Zahlen steht zusätzlich ein
-        Pfeil (↑ oder ↓): Er zeigt, ob das gesuchte Tier schwerer, größer oder älter ist. Wer das Tier zuerst nennt, gewinnt.
-      </p>
-      <p>
-        <strong>Zeit:</strong> Für jeden Zug habt ihr 10 Sekunden – in einer privaten Lobby
-        stellt ihr die Zeit selbst ein. Läuft sie ab, ist der andere dran.
-      </p>
-      <p>
-        <strong>Duell:</strong> Beim schnellen Spiel und in einer privaten Lobby könnt ihr
-        stattdessen Duell wählen. Dann wählt zuerst jeder ein Tier für den anderen, und jeder rät auf das Tier, das
-        der andere für ihn ausgesucht hat.
-      </p>
-      <p>
-        <strong>Tipp:</strong> Du kannst auch eine Kategorie eintippen. „Säugetier“,
-        „Savanne“ oder „nachtaktiv“ zeigt dir alle Tiere, auf die das zutrifft –
-        praktisch, sobald du eine grüne Kachel hast.
-      </p>
-    </section>
-
-    <!-- EIN <main> fuer den Hauptinhalt - darin wechseln sich Lobby und
-         Spielfeld ab. Wuerde stattdessen die Lobby selbst das <main> sein,
-         haette das Spielfeld waehrend der Partie keinen Hauptbereich mehr. -->
-    <main>
-
-      <!-- ============ Lobby ============ -->
-      <section class="lobby" id="lobby" aria-labelledby="lobby-titel" hidden>
-        <h2 class="nur-sr" id="lobby-titel">Lobby</h2>
-
-        <p class="lobby__begruessung">
-          <span>Angemeldet als <strong id="lobby-name"></strong></span>
-          <span>Wie möchtest du spielen?</span>
-        </p>
-
-        <!-- Fehlermeldungen des Servers, z. B. "Etwas langsamer bitte".
-             Ergaenzt gegenueber den Mockups; leer bleibt sie verborgen. -->
-        <p class="meldung lobby__meldung" id="lobby-meldung" role="alert" hidden></p>
-
-        <div class="lobby__wege">
-          <section class="weg" aria-labelledby="weg-oeffentlich">
-            <p class="weg__kicker">Öffentlich</p>
-            <h3 class="weg__titel" id="weg-oeffentlich">Schnell spielen</h3>
-            <p>Du stellst dich in die Warteschlange und spielst gegen den nächsten Spieler, der denselben Modus gewählt hat.</p>
-            <!-- Dieselben Modus-Karten wie im Dialog "Lobby erstellen" - nur ohne
-                 Beschreibung, damit beide in die schmale Spalte passen. -->
-            <fieldset class="modi">
-              <legend>Modus</legend>
-              <label class="modus">
-                <span class="modus__kopf"><input type="radio" name="schnell-modus" value="zufall" checked><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>Zufallstier</span>
-              </label>
-              <label class="modus">
-                <span class="modus__kopf"><input type="radio" name="schnell-modus" value="duell"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>Duell</span>
-              </label>
-            </fieldset>
-            <button class="knopf knopf--primaer knopf--gross" id="warteschlange-knopf" type="button">Warteschlange betreten</button>
-          </section>
-
-          <section class="weg" aria-labelledby="weg-privat">
-            <p class="weg__kicker">Privat</p>
-            <h3 class="weg__titel" id="weg-privat">Eigene Lobby</h3>
-            <p>Mit Passwort – nur wer es kennt, kann beitreten. Du wählst den Modus.</p>
-            <button class="knopf knopf--sekundaer knopf--gross" id="lobby-erstellen-knopf" type="button">Lobby erstellen</button>
-          </section>
-        </div>
-
-        <section class="raeume" aria-labelledby="raeume-titel">
-          <div class="raeume__kopf">
-            <!-- tabindex="-1": Verschwindet die Lobby, deren Knopf gerade den
-                 Fokus hat, setzt lobby.js den Fokus hierher. -->
-            <h3 class="raeume__titel" id="raeume-titel" tabindex="-1">Private Lobbys</h3>
-            <span class="raeume__anzahl" id="raeume-anzahl">0 offen</span>
+    <div class="seite">
+      <header class="kopf">
+        <div class="kopf__marke">
+          <div class="kopf__zeile">
+            <span class="kopf__logo" aria-hidden="true">
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M11.25 16.25h1.5L12 17z"></path>
+                <path d="M16 14v.5"></path>
+                <path
+                  d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309"
+                ></path>
+                <path d="M8 14v.5"></path>
+                <path
+                  d="M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.96-1.45-2.344-2.5"
+                ></path>
+              </svg>
+            </span>
+            <h1 class="kopf__titel">Zoodle</h1>
           </div>
-          <p class="raeume__hinweis"><svg class="symbol" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Alle privaten Lobbys sind mit Passwort geschützt.</p>
-          <!-- Suche und Modus-Filter - erscheinen, sobald es Lobbys gibt.
-               Gefiltert wird im Browser. -->
-          <div class="raeume__filter" id="raeume-filter" hidden>
-            <div class="raeume__suche">
-              <label for="lobby-suche">Lobby suchen</label>
-              <input class="feld" id="lobby-suche" type="search" maxlength="20"
-                     autocomplete="off" placeholder="Name des Erstellers">
-            </div>
-            <fieldset class="auswahl">
-              <legend>Modus</legend>
-              <div class="auswahl__optionen">
-                <label class="auswahl__option"><input type="radio" name="lobby-filter" value="alle" checked>Alle</label>
-                <label class="auswahl__option"><input type="radio" name="lobby-filter" value="zufall">Zufallstier</label>
-                <label class="auswahl__option"><input type="radio" name="lobby-filter" value="duell">Duell</label>
-              </div>
-            </fieldset>
-          </div>
-          <ul class="raeume__liste" id="raeume-liste" hidden></ul>
-          <p class="raeume__leer" id="raeume-keine" hidden>Keine Lobby passt zu Suche und Filter.</p>
-          <p class="raeume__leer" id="raeume-leer">
-            Gerade gibt es keine privaten Lobbys.<br>
-            Erstelle eine eigene oder spiel öffentlich.
+          <p class="kopf__untertitel">
+            Zwei Spieler, ein gesuchtes Tier. Jeder Tipp verrät, was passt und was nicht.
           </p>
-        </section>
+        </div>
+
+        <button
+          class="knopf knopf--sekundaer"
+          id="regeln-knopf"
+          type="button"
+          aria-expanded="false"
+          aria-controls="regeln"
+        >
+          Spielregeln
+        </button>
+        <!-- Nur während einer Partie: der Ausweg, falls der Gegner nie wählt oder
+           nie rät. Hier oben statt in der Spielleiste, damit die Leiste mit
+           Eingabe, Spielermarken und Uhr auch bei 1024 px in eine Zeile passt. -->
+        <button class="knopf knopf--sekundaer" id="partie-verlassen-knopf" type="button" hidden>
+          Partie verlassen
+        </button>
+      </header>
+
+      <section class="karte" id="regeln" aria-labelledby="regeln-titel" hidden>
+        <h2 class="karte__kicker" id="regeln-titel">So geht's</h2>
+        <p>
+          Ihr ratet <strong>abwechselnd</strong> auf dasselbe geheime Tier und seht beide alle
+          Tipps. Für jede Eigenschaft bekommst du eine Farbe und ein Zeichen:
+          <strong>Grün mit ✓</strong> heißt genau richtig, <strong>Orange mit ~</strong> heißt nah
+          dran, <strong>Beige mit ✕</strong> heißt falsch. Bei Zahlen steht zusätzlich ein Pfeil (↑
+          oder ↓): Er zeigt, ob das gesuchte Tier schwerer, größer oder älter ist. Wer das Tier
+          zuerst nennt, gewinnt.
+        </p>
+        <p>
+          <strong>Zeit:</strong> Für jeden Zug habt ihr 10 Sekunden. Läuft sie ab, ist der andere
+          dran. In einer privaten Lobby stellt ihr die Zeit selbst ein, auch
+          <strong>ohne Zeitlimit</strong>. Im Duell habt ihr 60 Sekunden, um ein Tier zu wählen –
+          ohne Zeitlimit auch dafür unbegrenzt.
+        </p>
+        <p>
+          <strong>Duell:</strong> Beim schnellen Spiel und in einer privaten Lobby könnt ihr
+          stattdessen Duell wählen. Dann wählt zuerst jeder ein Tier für den anderen, und jeder rät
+          auf das Tier, das der andere für ihn ausgesucht hat.
+        </p>
+        <p>
+          <strong>Tipp:</strong> Du kannst auch eine Kategorie eintippen. „Säugetier“, „Savanne“
+          oder „nachtaktiv“ zeigt dir alle Tiere, auf die das zutrifft – praktisch, sobald du eine
+          grüne Kachel hast.
+        </p>
       </section>
 
-      <!-- ============ Spielbereich ============ -->
-      <section class="spielbereich" id="spielbereich" aria-labelledby="spielbereich-titel" hidden>
-        <h2 class="nur-sr" id="spielbereich-titel">Spielfeld</h2>
+      <!-- EIN <main> für den Hauptinhalt - darin wechseln sich Lobby und
+         Spielfeld ab. Würde stattdessen die Lobby selbst das <main> sein,
+         hätte das Spielfeld während der Partie keinen Hauptbereich mehr. -->
+      <main>
+        <!-- ============ Lobby ============ -->
+        <section class="lobby" id="lobby" aria-labelledby="lobby-titel" hidden>
+          <h2 class="nur-sr" id="lobby-titel">Lobby</h2>
 
-        <div class="leiste">
-          <div class="sucher">
-            <label class="nur-sr" for="feld-tipp">Tier oder Kategorie eingeben</label>
-            <input class="feld" id="feld-tipp" type="text" maxlength="40" autocomplete="off"
-                   placeholder="Tier oder Kategorie eingeben …"
-                   role="combobox" aria-expanded="false" aria-controls="vorschlaege"
-                   aria-autocomplete="list">
-            <div class="vorschlaege" id="vorschlaege" role="listbox"
-                 aria-label="Passende Tiere" hidden></div>
+          <p class="lobby__begruessung">
+            <span>Angemeldet als <strong id="lobby-name"></strong></span>
+            <span>Wie möchtest du spielen?</span>
+          </p>
+
+          <!-- Fehlermeldungen des Servers, z. B. "Etwas langsamer bitte".
+             Leer bleibt sie verborgen. -->
+          <p class="meldung lobby__meldung" id="lobby-meldung" role="alert" hidden></p>
+
+          <div class="lobby__wege">
+            <section class="weg" aria-labelledby="weg-oeffentlich">
+              <p class="weg__kicker">Öffentlich</p>
+              <h3 class="weg__titel" id="weg-oeffentlich">Schnell spielen</h3>
+              <p>
+                Du stellst dich in die Warteschlange und spielst gegen den nächsten Spieler, der
+                denselben Modus gewählt hat.
+              </p>
+              <!-- Dieselben Modus-Karten wie im Dialog "Lobby erstellen" - nur ohne
+                 Beschreibung, damit beide in die schmale Spalte passen. -->
+              <fieldset class="modi">
+                <legend>Modus</legend>
+                <label class="modus">
+                  <span class="modus__kopf"
+                    ><input type="radio" name="schnell-modus" value="zufall" checked /><svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect width="18" height="18" x="3" y="3" rx="2" />
+                      <path d="M16 8h.01" />
+                      <path d="M8 8h.01" />
+                      <path d="M8 16h.01" />
+                      <path d="M16 16h.01" />
+                      <path d="M12 12h.01" /></svg
+                    >Zufallstier</span
+                  >
+                </label>
+                <label class="modus">
+                  <span class="modus__kopf"
+                    ><input type="radio" name="schnell-modus" value="duell" /><svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+                      <line x1="13" x2="19" y1="19" y2="13" />
+                      <line x1="16" x2="20" y1="16" y2="20" />
+                      <line x1="19" x2="21" y1="21" y2="19" />
+                      <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+                      <line x1="5" x2="9" y1="14" y2="18" />
+                      <line x1="7" x2="4" y1="17" y2="20" />
+                      <line x1="3" x2="5" y1="19" y2="21" /></svg
+                    >Duell</span
+                  >
+                </label>
+              </fieldset>
+              <button
+                class="knopf knopf--primaer knopf--gross"
+                id="warteschlange-knopf"
+                type="button"
+              >
+                Warteschlange betreten
+              </button>
+            </section>
+
+            <section class="weg" aria-labelledby="weg-privat">
+              <p class="weg__kicker">Privat</p>
+              <h3 class="weg__titel" id="weg-privat">Eigene Lobby</h3>
+              <p>Mit Passwort – nur wer es kennt, kann beitreten. Du wählst den Modus.</p>
+              <button
+                class="knopf knopf--sekundaer knopf--gross"
+                id="lobby-erstellen-knopf"
+                type="button"
+              >
+                Lobby erstellen
+              </button>
+            </section>
           </div>
 
-          <div class="spieler" id="spieler"></div>
+          <section class="raeume" aria-labelledby="raeume-titel">
+            <div class="raeume__kopf">
+              <!-- tabindex="-1": Verschwindet die Lobby, deren Knopf gerade den
+                 Fokus hat, setzt lobby.js den Fokus hierher. -->
+              <h3 class="raeume__titel" id="raeume-titel" tabindex="-1">Private Lobbys</h3>
+              <span class="raeume__anzahl" id="raeume-anzahl">0 offen</span>
+            </div>
+            <p class="raeume__hinweis">
+              <svg
+                class="symbol"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Alle privaten Lobbys sind mit Passwort geschützt.
+            </p>
+            <!-- Suche und Modus-Filter - erscheinen, sobald es Lobbys gibt.
+               Gefiltert wird im Browser. -->
+            <div class="raeume__filter" id="raeume-filter" hidden>
+              <div class="raeume__suche">
+                <label for="lobby-suche">Lobby suchen</label>
+                <input
+                  class="feld"
+                  id="lobby-suche"
+                  type="search"
+                  maxlength="20"
+                  autocomplete="off"
+                  placeholder="Name des Erstellers"
+                />
+              </div>
+              <fieldset class="auswahl">
+                <legend>Modus</legend>
+                <div class="auswahl__optionen">
+                  <label class="auswahl__option"
+                    ><input type="radio" name="lobby-filter" value="alle" checked />Alle</label
+                  >
+                  <label class="auswahl__option"
+                    ><input type="radio" name="lobby-filter" value="zufall" />Zufallstier</label
+                  >
+                  <label class="auswahl__option"
+                    ><input type="radio" name="lobby-filter" value="duell" />Duell</label
+                  >
+                </div>
+              </fieldset>
+            </div>
+            <ul class="raeume__liste" id="raeume-liste" hidden></ul>
+            <p class="raeume__leer" id="raeume-keine" hidden>
+              Keine Lobby passt zu Suche und Filter.
+            </p>
+            <div class="raeume__leer" id="raeume-leer">
+              <p>Gerade gibt es keine privaten Lobbys.</p>
+              <p>Erstelle eine eigene oder spiel öffentlich.</p>
+            </div>
+          </section>
+        </section>
 
-          <!-- Die Uhr zeigt nur an - gemessen wird auf dem Server.
+        <!-- ============ Spielbereich ============ -->
+        <section class="spielbereich" id="spielbereich" aria-labelledby="spielbereich-titel" hidden>
+          <h2 class="nur-sr" id="spielbereich-titel">Spielfeld</h2>
+
+          <div class="leiste">
+            <div class="sucher">
+              <label class="feld-beschriftung" for="feld-tipp">Tier oder Kategorie eingeben</label>
+              <input
+                class="feld"
+                id="feld-tipp"
+                type="text"
+                maxlength="40"
+                autocomplete="off"
+                placeholder="Tier oder Kategorie eingeben …"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="vorschlaege"
+                aria-autocomplete="list"
+              />
+              <!-- Nur bei sehr vielen Treffern: "... Tiere passen". Steht vor
+                 und nicht IN der Liste - eine Listbox enthält nur Optionen. -->
+              <p class="vorschlaege__hinweis" id="vorschlaege-hinweis" hidden></p>
+              <div
+                class="vorschlaege"
+                id="vorschlaege"
+                role="listbox"
+                aria-label="Passende Tiere"
+                hidden
+              ></div>
+            </div>
+
+            <div class="spieler" id="spieler"></div>
+
+            <!-- Die Uhr zeigt nur an - gemessen wird auf dem Server.
                role="timer": Der Screenreader liest den Sekundentakt NICHT
                von selbst vor; die wichtigen Momente sagt sage() an. -->
-          <div class="zuguhr" id="zuguhr" role="timer" aria-labelledby="zuguhr-wer" hidden>
-            <span class="zuguhr__wer" id="zuguhr-wer"></span>
-            <span class="zuguhr__zahl"><span class="zuguhr__sekunden"></span><span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></span>
-            <span class="zuguhr__balken" aria-hidden="true"><span class="zuguhr__fuellung"></span></span>
+            <div class="zuguhr" id="zuguhr" role="timer" aria-labelledby="zuguhr-wer" hidden>
+              <span class="zuguhr__wer" id="zuguhr-wer"></span>
+              <span class="zuguhr__zahl"
+                ><span class="zuguhr__sekunden"></span><span aria-hidden="true"> s</span
+                ><span class="nur-sr"> Sekunden</span></span
+              >
+              <span class="zuguhr__balken" aria-hidden="true"
+                ><span class="zuguhr__fuellung"></span
+              ></span>
+            </div>
           </div>
-        </div>
 
-        <!-- Nur im Duell sichtbar: wer gerade waehlt und wer worauf raet. -->
-        <p class="meldung duell-info" id="duell-info" hidden></p>
+          <!-- Nur im Duell sichtbar: wer gerade wählt und wer worauf rät. -->
+          <p class="meldung duell-info" id="duell-info" hidden></p>
 
-        <p class="meldung" id="spiel-meldung" role="alert"></p>
+          <p class="meldung spielbereich__meldung" id="spiel-meldung" role="alert"></p>
 
-        <section class="karte ende" id="ende" aria-labelledby="ende-titel" hidden>
-          <!-- tabindex="-1": Die Ueberschrift ist kein Bedienelement und bleibt
+          <section class="karte ende" id="ende" aria-labelledby="ende-titel" hidden>
+            <!-- tabindex="-1": Die Überschrift ist kein Bedienelement und bleibt
                darum aus der Tab-Reihenfolge - client.js kann ihr aber beim
                Spielende den Fokus geben. -->
-          <h2 class="karte__titel" id="ende-titel" tabindex="-1"></h2>
-          <p id="ende-text"></p>
-          <div class="ende__knoepfe">
-            <button class="knopf knopf--primaer" id="revanche-knopf"
-                    type="button">Revanche</button>
-            <button class="knopf knopf--sekundaer" id="zur-lobby-knopf"
-                    type="button">Zur Lobby</button>
-          </div>
-        </section>
+            <h2 class="karte__titel" id="ende-titel" tabindex="-1"></h2>
+            <p id="ende-text"></p>
+            <div class="ende__knoepfe">
+              <button class="knopf knopf--primaer" id="revanche-knopf" type="button">
+                Revanche
+              </button>
+              <button class="knopf knopf--sekundaer" id="zur-lobby-knopf" type="button">
+                Zur Lobby
+              </button>
+            </div>
+          </section>
 
-        <!-- ============ Duell: Endstand (nur am Ende eines Duells) ============
+          <!-- ============ Duell: Endstand (nur am Ende eines Duells) ============
              Die beiden Seiten baut client.js aus der Vorlage "vorlage-endstand-seite". -->
-        <section class="endstand" id="endstand" aria-label="Endstand" hidden>
-          <p class="endstand__fazit" id="endstand-fazit"></p>
-        </section>
+          <section class="endstand" id="endstand" aria-label="Endstand" hidden>
+            <p class="endstand__fazit" id="endstand-fazit"></p>
+          </section>
 
-        <!-- ============ Duell: das Brett des Gegners ============
+          <!-- ============ Duell: das Brett des Gegners ============
              Nur im Duell, in der Ratephase und am Ende. Kompakt: Fortschritt,
              Gefahrenstufe, "tippt ...", Meilenstein und eine Spurkarte pro Tipp. -->
-        <section class="brett brett--gegner" id="gegner-brett" aria-labelledby="gegner-titel" hidden>
-          <div class="brett__kopf">
-            <h3 class="brett__titel" id="gegner-titel"></h3>
-            <p class="brett__unter" id="gegner-unter"></p>
-            <!-- Die Uhr des Gegners - nur sichtbar, wenn ER dran ist. -->
-            <div class="zuguhr" id="gegner-zuguhr" role="timer" aria-labelledby="gegner-zuguhr-wer" hidden>
-              <span class="zuguhr__wer" id="gegner-zuguhr-wer"></span>
-              <span class="zuguhr__zahl"><span class="zuguhr__sekunden"></span><span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></span>
-              <span class="zuguhr__balken" aria-hidden="true"><span class="zuguhr__fuellung"></span></span>
+          <section
+            class="brett brett--gegner"
+            id="gegner-brett"
+            aria-labelledby="gegner-titel"
+            hidden
+          >
+            <div class="brett__kopf">
+              <h3 class="brett__titel" id="gegner-titel"></h3>
+              <p class="brett__unter" id="gegner-unter"></p>
+              <!-- Die Uhr des Gegners - nur sichtbar, wenn ER dran ist. -->
+              <div
+                class="zuguhr"
+                id="gegner-zuguhr"
+                role="timer"
+                aria-labelledby="gegner-zuguhr-wer"
+                hidden
+              >
+                <span class="zuguhr__wer" id="gegner-zuguhr-wer"></span>
+                <span class="zuguhr__zahl"
+                  ><span class="zuguhr__sekunden"></span><span aria-hidden="true"> s</span
+                  ><span class="nur-sr"> Sekunden</span></span
+                >
+                <span class="zuguhr__balken" aria-hidden="true"
+                  ><span class="zuguhr__fuellung"></span
+                ></span>
+              </div>
+              <!-- "Lena tippt ..." wird bewusst NICHT vorgelesen - das wäre zu viel Lärm. -->
+              <span class="tippt" id="gegner-tippt" hidden
+                ><span class="tippt__text"></span
+                ><span class="tippt__punkte" aria-hidden="true"
+                  ><span class="tippt__punkt"></span><span class="tippt__punkt"></span
+                  ><span class="tippt__punkt"></span></span
+              ></span>
+              <span class="stufe stufe--kalt" id="gegner-stufe"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" /></svg
+                ><span class="nur-sr">Gefahrenstufe: </span
+                ><span class="stufe__text">kalt</span></span
+              >
             </div>
-            <!-- "Lena tippt ..." wird bewusst NICHT vorgelesen - das waere zu viel Laerm. -->
-            <span class="tippt" id="gegner-tippt" hidden><span class="tippt__text"></span><span class="tippt__punkte" aria-hidden="true"><span class="tippt__punkt"></span><span class="tippt__punkt"></span><span class="tippt__punkt"></span></span></span>
-            <span class="stufe stufe--kalt" id="gegner-stufe"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg><span class="nur-sr">Gefahrenstufe: </span><span class="stufe__text">kalt</span></span>
-          </div>
-          <div class="fortschritt">
-            <ol class="fortschritt__felder" id="gegner-felder"></ol>
-            <span id="gegner-anzahl"></span>
-          </div>
-          <p class="meilenstein" id="gegner-meilenstein" hidden><span aria-hidden="true">⚑</span> <strong>Neu:</strong> <span class="meilenstein__text"></span></p>
-          <ol class="spuren" id="gegner-spuren"></ol>
-        </section>
-
-        <!-- ============ Duell: das eigene Brett ============
-             Im Duell haengt client.js die grosse Tabelle (unten) hierher um -
-             mit nur den eigenen Tipps. Beim Zufallstier bleibt sie, wo sie ist. -->
-        <section class="brett brett--eigenes" id="eigenes-brett" aria-labelledby="eigenes-titel" hidden>
-          <div class="brett__kopf">
-            <h3 class="brett__titel" id="eigenes-titel">Dein Brett</h3>
-            <p class="brett__unter" id="eigenes-unter"></p>
             <div class="fortschritt">
-              <ol class="fortschritt__felder" id="eigene-felder" aria-label="Eigenschaften von dir"></ol>
-              <span id="eigene-anzahl"></span>
+              <ol class="fortschritt__felder" id="gegner-felder"></ol>
+              <span id="gegner-anzahl"></span>
             </div>
+            <p class="meilenstein" id="gegner-meilenstein" hidden>
+              <span aria-hidden="true">⚑</span> <strong>Neu:</strong>
+              <span class="meilenstein__text"></span>
+            </p>
+            <ol class="spuren" id="gegner-spuren"></ol>
+          </section>
+
+          <!-- ============ Duell: das eigene Brett ============
+             Im Duell hängt client.js die große Tabelle (unten) hierher um -
+             mit nur den eigenen Tipps. Beim Zufallstier bleibt sie, wo sie ist. -->
+          <section
+            class="brett brett--eigenes"
+            id="eigenes-brett"
+            aria-labelledby="eigenes-titel"
+            hidden
+          >
+            <div class="brett__kopf">
+              <h3 class="brett__titel" id="eigenes-titel">Dein Brett</h3>
+              <p class="brett__unter" id="eigenes-unter"></p>
+              <div class="fortschritt">
+                <ol
+                  class="fortschritt__felder"
+                  id="eigene-felder"
+                  aria-label="Eigenschaften von dir"
+                ></ol>
+                <span id="eigene-anzahl"></span>
+              </div>
+            </div>
+            <div class="brett__tabelle" id="brett-tabelle"></div>
+          </section>
+
+          <div class="tabelle-huelle" id="tabelle-huelle">
+            <table class="tabelle" id="tipp-tabelle">
+              <caption class="nur-sr" id="tabellen-titel">
+                Bisherige Tipps beider Spieler, neuester zuerst
+              </caption>
+              <thead>
+                <tr id="tabellen-kopf"></tr>
+              </thead>
+              <tbody id="tabellen-koerper"></tbody>
+            </table>
           </div>
-          <div class="brett__tabelle" id="brett-tabelle"></div>
+
+          <p class="leer" id="leerzustand">
+            Noch kein Tipp. Fang mit einem Tier an, das du gut kennst.
+          </p>
+
+          <p class="legende">
+            <span class="legende__eintrag"
+              ><span class="legende__probe legende__probe--treffer"></span> ✓ stimmt</span
+            >
+            <span class="legende__eintrag"
+              ><span class="legende__probe legende__probe--nah"></span> ~ nah dran</span
+            >
+            <span class="legende__eintrag"
+              ><span class="legende__probe legende__probe--daneben"></span> ✕ falsch</span
+            >
+            <span class="legende__eintrag">↑ gesucht ist höher · ↓ gesucht ist niedriger</span>
+          </p>
         </section>
+      </main>
 
-        <div class="tabelle-huelle" id="tabelle-huelle">
-          <table class="tabelle" id="tipp-tabelle">
-            <caption class="nur-sr" id="tabellen-titel">Bisherige Tipps beider Spieler, neuester zuerst</caption>
-            <thead><tr id="tabellen-kopf"></tr></thead>
-            <tbody id="tabellen-koerper"></tbody>
-          </table>
-        </div>
+      <footer class="fuss">
+        <span id="pool-info"></span>
+        <span>Gewicht, Größe und Alter sind Durchschnittswerte erwachsener Tiere.</span>
+      </footer>
+    </div>
 
-        <p class="leer" id="leerzustand">Noch kein Tipp. Fang mit einem Tier an, das du gut kennst.</p>
-
-        <p class="legende">
-          <span class="legende__eintrag"><span class="legende__probe legende__probe--treffer"></span> ✓ stimmt</span>
-          <span class="legende__eintrag"><span class="legende__probe legende__probe--nah"></span> ~ nah dran</span>
-          <span class="legende__eintrag"><span class="legende__probe legende__probe--daneben"></span> ✕ falsch</span>
-          <span class="legende__eintrag">↑ gesucht ist höher · ↓ gesucht ist niedriger</span>
-        </p>
-      </section>
-
-    </main>
-
-    <footer class="fuss">
-      <span id="pool-info"></span>
-      <span>Gewicht, Größe und Alter sind Durchschnittswerte erwachsener Tiere.</span>
-    </footer>
-  </div>
-
-  <!-- ============ Dialoge ============
-       Alles echte <dialog>-Elemente: client.js und lobby.js oeffnen sie mit
-       showModal(). Der Browser legt sie dann ueber die Seite, dunkelt den Rest
-       ab (::backdrop) und sperrt ihn fuer Maus, Tastatur und Screenreader.
+    <!-- ============ Dialoge ============
+       Alles echte <dialog>-Elemente: client.js und lobby.js öffnen sie mit
+       showModal(). Der Browser legt sie dann über die Seite, dunkelt den Rest
+       ab (::backdrop) und sperrt ihn für Maus, Tastatur und Screenreader.
        Jeder Dialog hat deshalb seine eigene, leere Ansage-Region
        ("dialog__ansage") - die Region #ansage oben ist dann nicht erreichbar. -->
 
-  <!-- Anmeldung -->
-  <dialog class="dialog" id="anmelde-dialog" aria-labelledby="dialog-titel">
-    <h2 class="dialog__titel" id="dialog-titel">Zoodle</h2>
-    <p class="dialog__text" id="dialog-text">
-      Zwei Spieler, ein gesuchtes Tier. Wähle zuerst deinen Namen – danach entscheidest du,
-      ob du öffentlich oder in einer privaten Lobby spielst.
-    </p>
+    <!-- Anmeldung -->
+    <dialog class="dialog" id="anmelde-dialog" aria-labelledby="dialog-titel">
+      <h2 class="dialog__titel" id="dialog-titel">Zoodle</h2>
+      <p class="dialog__text" id="dialog-text">
+        Zwei Spieler, ein gesuchtes Tier. Wähle zuerst deinen Namen – danach entscheidest du, ob du
+        öffentlich oder in einer privaten Lobby spielst.
+      </p>
 
-    <form id="anmelde-formular" novalidate>
-      <label class="nur-sr" for="feld-name">Dein Spielername</label>
-      <input class="feld" id="feld-name" type="text" maxlength="20" required
-             autocomplete="off" placeholder="Dein Name">
-      <button class="knopf knopf--primaer knopf--gross dialog__knopf"
-              type="submit">Weiter zur Lobby</button>
-    </form>
+      <form id="anmelde-formular" novalidate>
+        <label class="feld-beschriftung" for="feld-name">Dein Spielername</label>
+        <!-- autocomplete="nickname": Der Browser darf den Spitznamen vorschlagen -
+           weniger Tipparbeit, besonders mit Bewegungseinschränkung (WCAG 1.3.5). -->
+        <input
+          class="feld"
+          id="feld-name"
+          type="text"
+          maxlength="20"
+          required
+          autocomplete="nickname"
+          placeholder="Dein Name"
+        />
+        <button class="knopf knopf--primaer knopf--gross dialog__knopf" type="submit">
+          Weiter zur Lobby
+        </button>
+      </form>
 
-    <p class="meldung" id="dialog-meldung" role="alert"></p>
-    <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
-  </dialog>
+      <p class="meldung" id="dialog-meldung" role="alert"></p>
+      <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    </dialog>
 
-  <!-- Private Lobby erstellen -->
-  <dialog class="dialog dialog--breit" id="erstellen-dialog" aria-labelledby="erstellen-titel">
-    <h2 class="dialog__titel" id="erstellen-titel">Private Lobby erstellen</h2>
-    <p class="dialog__text">Deine Lobby erscheint in der Liste. Gib das Passwort deinem Mitspieler persönlich.</p>
-    <form class="lobby-formular" id="erstellen-formular" novalidate>
-      <fieldset class="modi">
-        <legend>Modus</legend>
-        <label class="modus">
-          <span class="modus__kopf"><input type="radio" name="modus" value="zufall" checked><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>Zufallstier</span>
-          <span class="modus__text">Der Server lost ein Tier aus. Ihr ratet abwechselnd auf dasselbe Tier.</span>
-        </label>
-        <label class="modus">
-          <span class="modus__kopf"><input type="radio" name="modus" value="duell"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>Duell</span>
-          <span class="modus__text">Jeder wählt ein Tier für den anderen. Wer zuerst das Tier des Gegners errät, gewinnt.</span>
-        </label>
-      </fieldset>
-      <!-- Zeit pro Zug - dieselben Pillen wie der Modus-Filter der Lobbyliste.
-           "s" ist fuer Screenreader ausgeschrieben. -->
-      <fieldset class="auswahl">
-        <legend>Zeit pro Zug</legend>
-        <div class="auswahl__optionen">
-          <label class="auswahl__option"><input type="radio" name="zugzeit" value="10" checked>10<span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></label>
-          <label class="auswahl__option"><input type="radio" name="zugzeit" value="20">20<span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></label>
-          <label class="auswahl__option"><input type="radio" name="zugzeit" value="30">30<span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></label>
-          <label class="auswahl__option"><input type="radio" name="zugzeit" value="60">60<span aria-hidden="true"> s</span><span class="nur-sr"> Sekunden</span></label>
-          <label class="auswahl__option"><input type="radio" name="zugzeit" value="0">ohne Zeitlimit</label>
+    <!-- Private Lobby erstellen -->
+    <dialog class="dialog dialog--breit" id="erstellen-dialog" aria-labelledby="erstellen-titel">
+      <h2 class="dialog__titel" id="erstellen-titel">Private Lobby erstellen</h2>
+      <p class="dialog__text">
+        Deine Lobby erscheint in der Liste. Gib das Passwort deinem Mitspieler persönlich.
+      </p>
+      <form class="lobby-formular" id="erstellen-formular" novalidate>
+        <fieldset class="modi">
+          <legend>Modus</legend>
+          <label class="modus">
+            <span class="modus__kopf"
+              ><input type="radio" name="modus" value="zufall" checked /><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M16 8h.01" />
+                <path d="M8 8h.01" />
+                <path d="M8 16h.01" />
+                <path d="M16 16h.01" />
+                <path d="M12 12h.01" /></svg
+              >Zufallstier</span
+            >
+            <span class="modus__text"
+              >Der Server lost ein Tier aus. Ihr ratet abwechselnd auf dasselbe Tier.</span
+            >
+          </label>
+          <label class="modus">
+            <span class="modus__kopf"
+              ><input type="radio" name="modus" value="duell" /><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+                <line x1="13" x2="19" y1="19" y2="13" />
+                <line x1="16" x2="20" y1="16" y2="20" />
+                <line x1="19" x2="21" y1="21" y2="19" />
+                <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+                <line x1="5" x2="9" y1="14" y2="18" />
+                <line x1="7" x2="4" y1="17" y2="20" />
+                <line x1="3" x2="5" y1="19" y2="21" /></svg
+              >Duell</span
+            >
+            <span class="modus__text"
+              >Jeder wählt ein Tier für den anderen. Wer zuerst das Tier des Gegners errät,
+              gewinnt.</span
+            >
+          </label>
+        </fieldset>
+        <!-- Zeit pro Zug - dieselben Pillen wie der Modus-Filter der Lobbyliste.
+           Sichtbar und vorgelesen steht dasselbe ("10 Sek."): Wer per
+           Sprachsteuerung "Klicke 10 Sek." sagt, muss den Knopf unter genau
+           diesem Namen finden (WCAG 2.5.3). -->
+        <fieldset class="auswahl">
+          <legend>Zeit pro Zug</legend>
+          <div class="auswahl__optionen">
+            <label class="auswahl__option"
+              ><input type="radio" name="zugzeit" value="10" checked />10 Sek.</label
+            >
+            <label class="auswahl__option"
+              ><input type="radio" name="zugzeit" value="20" />20 Sek.</label
+            >
+            <label class="auswahl__option"
+              ><input type="radio" name="zugzeit" value="30" />30 Sek.</label
+            >
+            <label class="auswahl__option"
+              ><input type="radio" name="zugzeit" value="60" />60 Sek.</label
+            >
+            <label class="auswahl__option"
+              ><input type="radio" name="zugzeit" value="0" />ohne Zeitlimit</label
+            >
+          </div>
+        </fieldset>
+        <div class="passwort">
+          <label for="feld-neues-passwort">Passwort</label>
+          <div class="passwort__zeile">
+            <input
+              class="feld"
+              id="feld-neues-passwort"
+              type="password"
+              minlength="4"
+              maxlength="32"
+              required
+              autocomplete="new-password"
+              aria-describedby="feld-neues-passwort-hinweis"
+              autofocus
+            />
+            <button
+              class="knopf knopf--sekundaer"
+              id="neues-passwort-anzeigen"
+              type="button"
+              aria-pressed="false"
+              aria-controls="feld-neues-passwort"
+            >
+              Passwort anzeigen
+            </button>
+          </div>
+          <p class="passwort__hinweis" id="feld-neues-passwort-hinweis">
+            Mindestens 4 Zeichen. Nimm kein Passwort, das du woanders benutzt.
+          </p>
+          <p class="passwort__fehler" id="feld-neues-passwort-fehler" hidden></p>
         </div>
-      </fieldset>
-      <div class="passwort">
-        <label for="feld-neues-passwort">Passwort</label>
-        <div class="passwort__zeile">
-          <input class="feld" id="feld-neues-passwort" type="password" minlength="4" maxlength="32"
-                 required autocomplete="new-password" aria-describedby="feld-neues-passwort-hinweis" autofocus>
-          <button class="knopf knopf--sekundaer" id="neues-passwort-anzeigen" type="button"
-                  aria-pressed="false" aria-controls="feld-neues-passwort">Anzeigen</button>
+        <div class="dialog__aktionen">
+          <button class="knopf knopf--sekundaer" id="erstellen-abbrechen" type="button">
+            Abbrechen
+          </button>
+          <button class="knopf knopf--primaer" type="submit">Lobby erstellen</button>
         </div>
-        <p class="passwort__hinweis" id="feld-neues-passwort-hinweis">Mindestens 4 Zeichen. Nimm kein Passwort, das du woanders benutzt.</p>
-        <p class="passwort__fehler" id="feld-neues-passwort-fehler" hidden></p>
+      </form>
+      <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    </dialog>
+
+    <!-- Einer privaten Lobby beitreten - Titel, Modus und Name setzt lobby.js -->
+    <dialog class="dialog" id="beitreten-dialog" aria-labelledby="beitreten-titel">
+      <h2 class="dialog__titel" id="beitreten-titel"></h2>
+      <div class="lobby-info" id="beitreten-info"></div>
+      <form class="lobby-formular" id="beitreten-formular" novalidate>
+        <div class="passwort">
+          <label for="feld-passwort">Passwort</label>
+          <div class="passwort__zeile">
+            <input
+              class="feld"
+              id="feld-passwort"
+              type="password"
+              minlength="4"
+              maxlength="32"
+              required
+              autocomplete="off"
+              aria-describedby="feld-passwort-hinweis"
+            />
+            <button
+              class="knopf knopf--sekundaer"
+              id="passwort-anzeigen"
+              type="button"
+              aria-pressed="false"
+              aria-controls="feld-passwort"
+            >
+              Passwort anzeigen
+            </button>
+          </div>
+          <p class="passwort__hinweis" id="feld-passwort-hinweis">
+            Das Passwort bekommst du vom Ersteller der Lobby.
+          </p>
+          <p class="passwort__fehler" id="feld-passwort-fehler" hidden></p>
+        </div>
+        <div class="dialog__aktionen">
+          <button class="knopf knopf--sekundaer" id="beitreten-abbrechen" type="button">
+            Abbrechen
+          </button>
+          <button class="knopf knopf--primaer" id="beitreten-knopf" type="submit">Beitreten</button>
+        </div>
+      </form>
+      <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    </dialog>
+
+    <!-- Die eigene Lobby wartet auf einen Mitspieler -->
+    <dialog class="dialog" id="eigene-lobby-dialog" aria-labelledby="eigene-titel">
+      <h2 class="dialog__titel" id="eigene-titel">Deine Lobby ist offen</h2>
+      <p class="dialog__text">
+        Sie steht jetzt in der Liste. Sobald jemand mit dem richtigen Passwort beitritt, geht es
+        los.
+      </p>
+      <div class="lobby-info" id="eigene-lobby-info"></div>
+      <div class="warten-zeile">
+        <div class="punkte" aria-hidden="true">
+          <span class="punkte__punkt"></span>
+          <span class="punkte__punkt"></span>
+          <span class="punkte__punkt"></span>
+        </div>
+        <span role="status">Warte auf Mitspieler …</span>
       </div>
       <div class="dialog__aktionen">
-        <button class="knopf knopf--sekundaer" id="erstellen-abbrechen" type="button">Abbrechen</button>
-        <button class="knopf knopf--primaer" type="submit">Lobby erstellen</button>
+        <button class="knopf knopf--sekundaer" id="lobby-schliessen-knopf" type="button">
+          Lobby schließen
+        </button>
       </div>
-    </form>
-    <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
-  </dialog>
+      <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    </dialog>
 
-  <!-- Einer privaten Lobby beitreten - Titel, Modus und Name setzt lobby.js -->
-  <dialog class="dialog" id="beitreten-dialog" aria-labelledby="beitreten-titel">
-    <h2 class="dialog__titel" id="beitreten-titel"></h2>
-    <div class="lobby-info" id="beitreten-info"></div>
-    <form class="lobby-formular" id="beitreten-formular" novalidate>
-      <div class="passwort">
-        <label for="feld-passwort">Passwort</label>
-        <div class="passwort__zeile">
-          <input class="feld" id="feld-passwort" type="password" minlength="4" maxlength="32"
-                 required autocomplete="off" aria-describedby="feld-passwort-hinweis">
-          <button class="knopf knopf--sekundaer" id="passwort-anzeigen" type="button"
-                  aria-pressed="false" aria-controls="feld-passwort">Anzeigen</button>
+    <!-- Öffentliche Warteschlange -->
+    <dialog class="dialog" id="schlange-dialog" aria-labelledby="schlange-titel">
+      <h2 class="dialog__titel" id="schlange-titel">Warteschlange</h2>
+      <p class="dialog__text">
+        Sobald ein weiterer Spieler mit demselben Modus dazukommt, startet die Partie automatisch.
+      </p>
+      <!-- Modus-Plakette und "Öffentliche Partie" setzt lobby.js ein. -->
+      <div class="lobby-info" id="schlange-info"></div>
+      <div class="warten-zeile">
+        <div class="punkte" aria-hidden="true">
+          <span class="punkte__punkt"></span>
+          <span class="punkte__punkt"></span>
+          <span class="punkte__punkt"></span>
         </div>
-        <p class="passwort__hinweis" id="feld-passwort-hinweis">Das Passwort bekommst du vom Ersteller der Lobby.</p>
-        <p class="passwort__fehler" id="feld-passwort-fehler" hidden></p>
+        <span role="status">Warte auf den nächsten Spieler …</span>
       </div>
       <div class="dialog__aktionen">
-        <button class="knopf knopf--sekundaer" id="beitreten-abbrechen" type="button">Abbrechen</button>
-        <button class="knopf knopf--primaer" id="beitreten-knopf" type="submit">Beitreten</button>
+        <button class="knopf knopf--sekundaer" id="schlange-verlassen-knopf" type="button">
+          Warteschlange verlassen
+        </button>
       </div>
-    </form>
-    <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
-  </dialog>
+      <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
+    </dialog>
 
-  <!-- Die eigene Lobby wartet auf einen Mitspieler -->
-  <dialog class="dialog" id="eigene-lobby-dialog" aria-labelledby="eigene-titel">
-    <h2 class="dialog__titel" id="eigene-titel">Deine Lobby ist offen</h2>
-    <p class="dialog__text">Sie steht jetzt in der Liste. Sobald jemand mit dem richtigen Passwort beitritt, geht es los.</p>
-    <div class="lobby-info" id="eigene-lobby-info"></div>
-    <div class="warten-zeile">
-      <div class="punkte" aria-hidden="true">
-        <span class="punkte__punkt"></span>
-        <span class="punkte__punkt"></span>
-        <span class="punkte__punkt"></span>
-      </div>
-      <span role="status">Warte auf Mitspieler …</span>
-    </div>
-    <div class="dialog__aktionen">
-      <button class="knopf knopf--sekundaer" id="lobby-schliessen-knopf" type="button">Lobby schließen</button>
-    </div>
-    <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
-  </dialog>
-
-  <!-- Oeffentliche Warteschlange -->
-  <dialog class="dialog" id="schlange-dialog" aria-labelledby="schlange-titel">
-    <h2 class="dialog__titel" id="schlange-titel">Warteschlange</h2>
-    <p class="dialog__text">Sobald ein weiterer Spieler mit demselben Modus dazukommt, startet die Partie automatisch.</p>
-    <!-- Modus-Plakette und "Öffentliche Partie" setzt lobby.js ein. -->
-    <div class="lobby-info" id="schlange-info"></div>
-    <div class="warten-zeile">
-      <div class="punkte" aria-hidden="true">
-        <span class="punkte__punkt"></span>
-        <span class="punkte__punkt"></span>
-        <span class="punkte__punkt"></span>
-      </div>
-      <span role="status">Warte auf den nächsten Spieler …</span>
-    </div>
-    <div class="dialog__aktionen">
-      <button class="knopf knopf--sekundaer" id="schlange-verlassen-knopf" type="button">Warteschlange verlassen</button>
-    </div>
-    <p class="nur-sr dialog__ansage" role="status" aria-live="polite" aria-atomic="true"></p>
-  </dialog>
-
-  <!-- ============ Vorlagen ============
+    <!-- ============ Vorlagen ============
        <template> wird nicht angezeigt. lobby.js kopiert den Inhalt mit
        cloneNode() und setzt Namen nur per textContent ein - so entsteht nie
        HTML aus Text, den ein Spieler eingegeben hat. -->
-  <template id="vorlage-plakette-zufall">
-    <span class="modus-plakette modus-plakette--zufall"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>Zufallstier</span>
-  </template>
+    <template id="vorlage-plakette-zufall">
+      <span class="modus-plakette modus-plakette--zufall"
+        ><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M16 8h.01" />
+          <path d="M8 8h.01" />
+          <path d="M8 16h.01" />
+          <path d="M16 16h.01" />
+          <path d="M12 12h.01" /></svg
+        >Zufallstier</span
+      >
+    </template>
 
-  <template id="vorlage-plakette-duell">
-    <span class="modus-plakette modus-plakette--duell"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>Duell</span>
-  </template>
+    <template id="vorlage-plakette-duell">
+      <span class="modus-plakette modus-plakette--duell"
+        ><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+          <line x1="13" x2="19" y1="19" y2="13" />
+          <line x1="16" x2="20" y1="16" y2="20" />
+          <line x1="19" x2="21" y1="21" y2="19" />
+          <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+          <line x1="5" x2="9" y1="14" y2="18" />
+          <line x1="7" x2="4" y1="17" y2="20" />
+          <line x1="3" x2="5" y1="19" y2="21" /></svg
+        >Duell</span
+      >
+    </template>
 
-  <!-- Zugzeit: Uhr-Symbol UND Text ("30 s" oder "ohne Limit"). -->
-  <template id="vorlage-plakette-zeit">
-    <span class="zeit-plakette"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg><span class="nur-sr">Zeit pro Zug: </span><span class="zeit-plakette__text"></span></span>
-  </template>
+    <!-- Zugzeit: Uhr-Symbol UND Text ("30 s" oder "ohne Limit"). -->
+    <template id="vorlage-plakette-zeit">
+      <span class="zeit-plakette"
+        ><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="10" x2="14" y1="2" y2="2" />
+          <line x1="12" x2="15" y1="14" y2="11" />
+          <circle cx="12" cy="14" r="8" /></svg
+        ><span class="nur-sr">Zeit pro Zug: </span><span class="zeit-plakette__text"></span
+      ></span>
+    </template>
 
-  <!-- Gefahrenstufe: Thermometer + Wort, fuer den Endstand. -->
-  <template id="vorlage-stufe">
-    <span class="stufe"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg><span class="nur-sr">Gefahrenstufe: </span><span class="stufe__text"></span></span>
-  </template>
+    <!-- Gefahrenstufe: Thermometer + Wort, für den Endstand. -->
+    <template id="vorlage-stufe">
+      <span class="stufe"
+        ><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" /></svg
+        ><span class="nur-sr">Gefahrenstufe: </span><span class="stufe__text"></span
+      ></span>
+    </template>
 
-  <!-- Eine Seite des Endstands im Duell (Du / Gegner). -->
-  <template id="vorlage-endstand-seite">
-    <div class="endstand__seite">
-      <div class="endstand__kopf"><span class="endstand__wer"></span></div>
-      <p class="endstand__verb"></p>
-      <p class="endstand__tier"></p>
-      <dl>
-        <dt>Tipps</dt><dd class="endstand__tipps"></dd>
-        <dt>Geknackt</dt><dd class="endstand__geknackt"></dd>
-      </dl>
-    </div>
-  </template>
+    <!-- Eine Seite des Endstands im Duell (Du / Gegner). -->
+    <template id="vorlage-endstand-seite">
+      <div class="endstand__seite">
+        <div class="endstand__kopf"><span class="endstand__wer"></span></div>
+        <p class="endstand__verb"></p>
+        <p class="endstand__tier"></p>
+        <dl>
+          <dt>Tipps</dt>
+          <dd class="endstand__tipps"></dd>
+          <dt>Geknackt</dt>
+          <dd class="endstand__geknackt"></dd>
+        </dl>
+      </div>
+    </template>
 
-  <template id="vorlage-schloss">
-    <svg class="symbol" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-  </template>
+    <template id="vorlage-schloss">
+      <svg
+        class="symbol"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    </template>
 
-  <template id="vorlage-raum">
-    <li class="raum">
-      <span class="raum__zeichen" aria-hidden="true"></span>
-      <span class="raum__name"></span>
-      <!-- Modus- und Zeit-Plakette setzt lobby.js ein -->
-      <span class="raum__plaketten"></span>
-      <button class="knopf knopf--sekundaer raum__knopf" type="button">Beitreten<span class="nur-sr"></span></button>
-    </li>
-  </template>
+    <template id="vorlage-raum">
+      <li class="raum">
+        <span class="raum__zeichen" aria-hidden="true"></span>
+        <span class="raum__name"></span>
+        <!-- Modus- und Zeit-Plakette setzt lobby.js ein -->
+        <span class="raum__plaketten"></span>
+        <!-- Bleibt in einer Zeile: Ein Zeilenumbruch hinter dem unsichtbaren
+           Text würde im Flex-Knopf zu einem eigenen Element, der Knopf um den
+           Abstand (gap) breiter und der Lobbyname schmaler. -->
+        <!-- prettier-ignore -->
+        <button class="knopf knopf--sekundaer raum__knopf" type="button">Beitreten<span class="nur-sr"></span></button>
+      </li>
+    </template>
 
-  <!-- Diese Datei liefert Socket.io automatisch selbst aus. -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="js/client.js"></script>
-
-</body>
+    <!-- Diese Datei liefert Socket.io automatisch selbst aus. -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="js/client.js"></script>
+  </body>
 </html>

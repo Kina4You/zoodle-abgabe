@@ -1,14 +1,20 @@
 /**
  * Tests der Spiellogik.
  *
- * Ausgefuehrt mit "npm test". Verwendet den in Node eingebauten Test-Runner
- * (node:test) - dafuer ist KEINE zusaetzliche Abhaengigkeit noetig.
+ * Ausgeführt mit "npm test". Verwendet den in Node eingebauten Test-Runner
+ * (node:test) - dafür ist KEINE zusätzliche Abhängigkeit nötig.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { KATEGORIEN, Spiel, vergleiche, formatiereGewicht, formatiereGroesse } from '../server/spiel.js';
+import {
+  KATEGORIEN,
+  Spiel,
+  vergleiche,
+  formatiereGewicht,
+  formatiereGroesse,
+} from '../server/spiel.js';
 import { ALLE_TIERE } from '../server/tierdaten.js';
 
 /** Baut ein Testtier - alle Felder haben sinnvolle Vorgaben. */
@@ -52,15 +58,24 @@ test('nicht verwandte Klassen gelten als "daneben"', () => {
 });
 
 test('"Allesfresser" ist die Bruecke zwischen Fleisch- und Pflanzenfressern', () => {
-  const nah = vergleiche(tier({ ernaehrung: 'Allesfresser' }), tier({ ernaehrung: 'Pflanzenfresser' }));
+  const nah = vergleiche(
+    tier({ ernaehrung: 'Allesfresser' }),
+    tier({ ernaehrung: 'Pflanzenfresser' }),
+  );
   assert.equal(hinweis(nah, 'ernaehrung').bewertung, 'nah');
 
-  const daneben = vergleiche(tier({ ernaehrung: 'Fleischfresser' }), tier({ ernaehrung: 'Pflanzenfresser' }));
+  const daneben = vergleiche(
+    tier({ ernaehrung: 'Fleischfresser' }),
+    tier({ ernaehrung: 'Pflanzenfresser' }),
+  );
   assert.equal(hinweis(daneben, 'ernaehrung').bewertung, 'daneben');
 });
 
 test('"dämmerungsaktiv" ist die Bruecke zwischen tag- und nachtaktiv', () => {
-  const hinweise = vergleiche(tier({ aktivitaet: 'dämmerungsaktiv' }), tier({ aktivitaet: 'nachtaktiv' }));
+  const hinweise = vergleiche(
+    tier({ aktivitaet: 'dämmerungsaktiv' }),
+    tier({ aktivitaet: 'nachtaktiv' }),
+  );
   assert.equal(hinweis(hinweise, 'aktivitaet').bewertung, 'nah');
 });
 
@@ -74,24 +89,38 @@ test('Zahlen: bis 10 Prozent Abweichung ist ein Treffer, ohne Pfeil', () => {
 });
 
 test('Zahlen: der Pfeil zeigt, wo das GESUCHTE Tier liegt', () => {
-  const zuLeicht = hinweis(vergleiche(tier({ gewichtKg: 10 }), tier({ gewichtKg: 100 })), 'gewichtKg');
+  const zuLeicht = hinweis(
+    vergleiche(tier({ gewichtKg: 10 }), tier({ gewichtKg: 100 })),
+    'gewichtKg',
+  );
   assert.equal(zuLeicht.richtung, 'hoeher', 'geraten 10 kg, gesucht 100 kg -> Pfeil nach oben');
 
-  const zuSchwer = hinweis(vergleiche(tier({ gewichtKg: 1000 }), tier({ gewichtKg: 100 })), 'gewichtKg');
+  const zuSchwer = hinweis(
+    vergleiche(tier({ gewichtKg: 1000 }), tier({ gewichtKg: 100 })),
+    'gewichtKg',
+  );
   assert.equal(zuSchwer.richtung, 'niedriger');
 });
 
 test('Zahlen: Faktor 2 ist "nah dran", Faktor 10 ist "daneben"', () => {
-  assert.equal(hinweis(vergleiche(tier({ alterJahre: 20 }), tier({ alterJahre: 10 })), 'alterJahre').bewertung, 'nah');
-  assert.equal(hinweis(vergleiche(tier({ alterJahre: 100 }), tier({ alterJahre: 10 })), 'alterJahre').bewertung, 'daneben');
+  assert.equal(
+    hinweis(vergleiche(tier({ alterJahre: 20 }), tier({ alterJahre: 10 })), 'alterJahre').bewertung,
+    'nah',
+  );
+  assert.equal(
+    hinweis(vergleiche(tier({ alterJahre: 100 }), tier({ alterJahre: 10 })), 'alterJahre')
+      .bewertung,
+    'daneben',
+  );
 });
 
 /** Kurzform: Wie wird ein Gewicht von x gegen ein Ziel von 100 bewertet? */
-const bewerteGewicht = (x) => hinweis(vergleiche(tier({ gewichtKg: x }), tier({ gewichtKg: 100 })), 'gewichtKg').bewertung;
+const bewerteGewicht = (x) =>
+  hinweis(vergleiche(tier({ gewichtKg: x }), tier({ gewichtKg: 100 })), 'gewichtKg').bewertung;
 
 test('Grenzwert Treffer: genau 10 Prozent Abweichung zaehlt noch als Treffer', () => {
   // Diese vier Werte legen fest, wie schwer das Spiel ist. Ein Tippfehler in
-  // ZAHL_TREFFER wuerde ohne diesen Test unbemerkt durchgehen.
+  // ZAHL_TREFFER würde ohne diesen Test unbemerkt durchgehen.
   assert.equal(bewerteGewicht(90), 'treffer', '90 zu 100 = genau -10 %');
   assert.equal(bewerteGewicht(110), 'treffer', '110 zu 100 = genau +10 %');
 
@@ -108,9 +137,10 @@ test('Grenzwert nah dran: Verhaeltnis 0,4 und 2,5 zaehlen noch als "nah"', () =>
 });
 
 test('die Pfeilrichtung kippt genau an der Treffergrenze', () => {
-  // Ein Treffer bekommt NIE einen Pfeil - eine gruene Kachel mit Pfeil
-  // waere widerspruechlich. Direkt daneben muss der Pfeil aber da sein.
-  const pfeil = (x) => hinweis(vergleiche(tier({ gewichtKg: x }), tier({ gewichtKg: 100 })), 'gewichtKg').richtung;
+  // Ein Treffer bekommt NIE einen Pfeil - eine grüne Kachel mit Pfeil
+  // wäre widersprüchlich. Direkt daneben muss der Pfeil aber da sein.
+  const pfeil = (x) =>
+    hinweis(vergleiche(tier({ gewichtKg: x }), tier({ gewichtKg: 100 })), 'gewichtKg').richtung;
 
   assert.equal(pfeil(90), null, 'noch Treffer, also kein Pfeil');
   assert.equal(pfeil(89), 'hoeher', 'zu leicht - gesucht ist schwerer');
@@ -133,18 +163,21 @@ test('Groessen werden lesbar formatiert', () => {
 });
 
 test('auch Groessen unter einem Zentimeter nutzen das deutsche Komma', () => {
-  // Diese drei Werte stehen so in den Tierdaten. Vorher kam hier ein
-  // Dezimalpunkt heraus - "0.6 cm" neben "2,5 m" auf demselben Spielfeld.
-  assert.equal(formatiereGroesse(0.6), '0,6 cm');  // Ameise
-  assert.equal(formatiereGroesse(1.5), '1,5 cm');  // Honigbiene
-  assert.equal(formatiereGroesse(0.7), '0,7 cm');  // Marienkäfer
+  // Diese drei Werte stehen so in den Tierdaten. "0.6 cm" neben "2,5 m" auf
+  // demselben Spielfeld sähe falsch aus.
+  assert.equal(formatiereGroesse(0.6), '0,6 cm'); // Ameise
+  assert.equal(formatiereGroesse(1.5), '1,5 cm'); // Honigbiene
+  assert.equal(formatiereGroesse(0.7), '0,7 cm'); // Marienkäfer
 });
 
 test('kein einziger Anzeigewert enthaelt einen Dezimalpunkt', () => {
   // Der eigentliche Schutz: Statt einzelner Stichproben wird die GESAMTE
-  // Tierliste durchgerechnet. Ein neues Tier mit krummem Wert faellt sofort auf.
+  // Tierliste durchgerechnet. Ein neues Tier mit krummem Wert fällt sofort auf.
   for (const tier of ALLE_TIERE) {
-    for (const [feld, formatiere] of [['gewichtKg', formatiereGewicht], ['groesseCm', formatiereGroesse]]) {
+    for (const [feld, formatiere] of [
+      ['gewichtKg', formatiereGewicht],
+      ['groesseCm', formatiereGroesse],
+    ]) {
       const anzeige = formatiere(tier[feld]);
       assert.ok(!anzeige.includes('.'), `"${tier.name}" zeigt ${feld} als "${anzeige}"`);
     }
@@ -194,14 +227,14 @@ test('jede Partie zaehlt ihre Tipps mit', () => {
 });
 
 // --------------------------------------------------------------------------
-// Modus Duell: jeder waehlt ein Tier fuer den anderen
+// Modus Duell: jeder wählt ein Tier für den anderen
 // --------------------------------------------------------------------------
 
-/** Eine Duell-Partie, in der beide schon gewaehlt haben. */
+/** Eine Duell-Partie, in der beide schon gewählt haben. */
 function duell({ fuerA = 'Loewe', fuerB = 'Adler' } = {}) {
   const spiel = new Spiel('a', 'b', null, 'duell');
-  spiel.waehleTier('b', tier({ name: fuerA })); // b waehlt fuer a
-  spiel.waehleTier('a', tier({ name: fuerB })); // a waehlt fuer b
+  spiel.waehleTier('b', tier({ name: fuerA })); // b wählt für a
+  spiel.waehleTier('a', tier({ name: fuerB })); // a wählt für b
   return spiel;
 }
 
@@ -246,7 +279,11 @@ test('Duell: "schon geraten" zaehlt nur die eigenen Tipps', () => {
   spiel.rate('a', tier({ name: 'Wolf' }));
 
   assert.equal(spiel.schonGeraten('Wolf', 'a'), true);
-  assert.equal(spiel.schonGeraten('Wolf', 'b'), false, 'fuer b kann Wolf genau das gesuchte Tier sein');
+  assert.equal(
+    spiel.schonGeraten('Wolf', 'b'),
+    false,
+    'fuer b kann Wolf genau das gesuchte Tier sein',
+  );
 });
 
 test('Zufallstier: "schon geraten" zaehlt die Tipps beider', () => {

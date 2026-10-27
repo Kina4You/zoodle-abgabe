@@ -739,7 +739,8 @@ function pruefeNeustart(socket) {
 
 /**
  * Nimmt ein Revanche-Angebot zurück und sagt dem Gegner Bescheid, falls der
- * schon zugestimmt hat und nun vergeblich wartet.
+ * noch auf der Endkarte steht - ob er schon zugestimmt hat oder nicht. Sonst
+ * zeigt sein Revanche-Knopf weiter etwas an, das es nicht mehr gibt.
  *
  * Die Reihenfolge ist wichtig: erst fragen, dann löschen. Nach dem Löschen
  * weiß niemand mehr, wem die Absage überhaupt gilt.

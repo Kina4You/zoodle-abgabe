@@ -200,6 +200,19 @@ test('wer einen neuen Gegner sucht, gibt sein Revanche-Angebot auf', () => {
   assert.equal(v.wartetAufRevancheMit('anna'), undefined);
 });
 
+test('wer geht, sagt auch einem Gegner ab, der noch nicht zugestimmt hat', () => {
+  const { v } = beendetePartie();
+
+  // Niemand hat geklickt - trotzdem sieht Anna einen Revanche-Knopf und
+  // muss erfahren, dass Ben weg ist.
+  assert.equal(v.wartetAufRevancheMit('ben'), 'anna');
+
+  // Auch umgekehrt: Anna hat angeboten und geht selbst. Ben sieht
+  // "dein Gegner ist bereit" und muss die Absage bekommen.
+  v.stimmeRevancheZu('anna');
+  assert.equal(v.wartetAufRevancheMit('anna'), 'ben');
+});
+
 test('ohne vorherige Partie gibt es nichts zu revanchieren', () => {
   const v = new Partienverwaltung();
 

@@ -178,19 +178,26 @@ export class Partienverwaltung {
   }
 
   /**
-   * Wer wartet auf eine Revanche ausgerechnet mit diesem Spieler?
+   * Wer steht noch auf der Endkarte und könnte eine Revanche mit diesem
+   * Spieler wollen?
+   *
+   * Bewusst egal, ob der Gegner schon zugestimmt hat: Auch wer noch nicht
+   * geklickt hat, sieht einen Revanche-Knopf. Erfährt er nicht, dass ich
+   * gegangen bin, klickt er später ins Leere und bleibt bei "Warte auf
+   * deinen Gegner" hängen. Zeigt seine Notiz nicht mehr auf mich, ist er
+   * selbst schon weitergezogen - dann gibt es niemandem abzusagen.
    *
    * Reine Abfrage ohne Nebenwirkung. Der Server braucht sie, BEVOR er eine
    * Notiz wegwirft: Danach weiß niemand mehr, wem die Absage gilt.
    *
-   * @returns {string | undefined} Kennung des wartenden Gegners
+   * @returns {string | undefined} Kennung des Gegners auf der Endkarte
    */
   wartetAufRevancheMit(spielerId) {
     const notiz = this.#revancheNotizen.get(spielerId);
     if (!notiz) return undefined;
 
     const gegnerNotiz = this.#revancheNotizen.get(notiz.gegnerId);
-    return gegnerNotiz?.zugestimmt ? notiz.gegnerId : undefined;
+    return gegnerNotiz?.gegnerId === spielerId ? notiz.gegnerId : undefined;
   }
 
   /**

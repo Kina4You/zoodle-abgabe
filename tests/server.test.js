@@ -827,6 +827,35 @@ test('wer zur Lobby geht, sagt dem Wartenden ab und steht wieder in der Lobby', 
   assert.match(await fehler, /nicht mehr möglich/);
 });
 
+test('geht der Gegner, bevor ich Revanche anbiete, erfahre ich es trotzdem', async () => {
+  const partie = await startePartie();
+  const { anna, ben } = partie;
+  await spieleZuEnde(partie);
+
+  // Anna hat noch nicht geklickt - ihr Revanche-Knopf darf trotzdem nicht
+  // aktiv bleiben, sonst wartet sie nach dem Klick auf niemanden.
+  const abgesagt = warteAuf(anna, 'revancheGeplatzt');
+  ben.emit('zurLobby');
+
+  assert.match(await abgesagt, /Lobby/);
+});
+
+test('wer Revanche anbietet und dann geht, sagt dem Gegner ab', async () => {
+  const partie = await startePartie();
+  const { anna, ben } = partie;
+  await spieleZuEnde(partie);
+
+  const benErfaehrtEs = warteAuf(ben, 'revancheAngeboten');
+  anna.emit('revanche');
+  await benErfaehrtEs;
+
+  // Ben sieht "dein Gegner ist bereit" - das muss verschwinden.
+  const abgesagt = warteAuf(ben, 'revancheGeplatzt');
+  anna.emit('zurLobby');
+
+  assert.match(await abgesagt, /Lobby/);
+});
+
 test('mehrfaches Klicken auf Revanche startet nur eine Partie', async () => {
   const partie = await startePartie();
   const { anna, ben } = partie;

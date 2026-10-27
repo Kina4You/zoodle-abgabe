@@ -497,7 +497,8 @@ sequenceDiagram
 ```
 
 Klickt einer der beiden stattdessen **Zur Lobby**, verfällt sein Angebot und
-der andere bekommt `revancheGeplatzt` – er wartet also nie vergeblich. Dasselbe
+der andere bekommt `revancheGeplatzt` – auch wenn er selbst noch gar nicht geklickt
+hat. Sein Knopf zeigt dann den Grund, statt ins Leere zu führen. Dasselbe
 passiert, wenn er die Verbindung verliert oder direkt in Warteschlange oder Lobby
 weiterzieht. Beide Wege behalten den Spielernamen
 und die bestehende Verbindung: Die Seite wird nicht neu geladen.
@@ -1028,6 +1029,18 @@ Die Nachrichtenbremse schützt eine _bestehende_ Verbindung, nicht gegen viele _
 Bewusst so belassen: Ein Limit müsste eine feste Zahl festlegen, und ein zu niedriger
 Wert würde am Vorführtag stören, wenn ein ganzer Kurs gleichzeitig verbindet. Für den
 vorgesehenen Einsatz — zwei Spieler an einem Hochschulserver — ist das vertretbar.
+
+**Passwort-Prüfung lässt sich bremsen und umgehen.** Höchstens
+`MAX_GLEICHZEITIGE_PRUEFUNGEN` = 4 Passwörter werden gleichzeitig gehasht, und zwar für
+den ganzen Server, nicht je Adresse. Wer über viele Verbindungen ununterbrochen
+Beitrittsversuche schickt, kann diese Plätze belegen; ehrliche Spieler bekommen dann
+`beschaeftigt` und müssen es kurz darauf noch einmal versuchen. Die Sperre nach
+`MAX_FEHLVERSUCHE` = 5 Fehlversuchen zählt je Lobby und IP-Adresse. Mit IPv6 hat ein
+Anschluss aber meist ein ganzes Netz an Adressen; wer sie wechselt, kann weiter raten.
+Bewusst so belassen: Die Grenze von 4 schützt den Server vor Überlast durch das
+aufwendige Hashen, und das ist ihr Zweck. Eine Grenze je Netz statt je Adresse
+würde im Hörsaal ehrliche Spieler treffen, die sich ein Netz teilen. Und das Passwort
+ist ausdrücklich nur ein Spielpasswort (siehe oben), kein Schutz für echte Geheimnisse.
 
 ---
 

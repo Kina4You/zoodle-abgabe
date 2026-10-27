@@ -318,8 +318,17 @@ function sperreTippfeld(gesperrt) {
   // Nur ins Feld springen, wenn der Fokus gerade nirgends steht - wer
   // währenddessen z. B. mit dem Screenreader die Tabelle liest, wird nicht
   // herausgerissen. Die Ansage "Du bist dran" kommt so oder so.
+  //
+  // "Nirgends" heißt auch: auf etwas, das man nicht mehr sieht. Beim
+  // Spielstart schließt sich der Lobby-Dialog. Chrome gibt den Fokus dann an
+  // den Knopf zurück, der ihn geöffnet hat - und gleich danach verschwindet
+  // die Lobby. Safari lässt ihn sogar im geschlossenen Dialog stehen. Ohne
+  // diese Prüfung säße der Fokus auf etwas Unsichtbarem, und wer nur mit
+  // Tastatur oder Screenreader spielt, tippt ins Leere.
   const fokus = document.activeElement;
-  if (!fokus || fokus === document.body || fokus === feldTipp) feldTipp.focus();
+  const fokusNirgends =
+    !fokus || fokus === document.body || fokus.closest('[hidden], dialog:not([open])');
+  if (fokusNirgends || fokus === feldTipp) feldTipp.focus();
 }
 
 /** Duell: Das Eingabefeld dient jetzt zum Wählen - bis man gewählt hat. */

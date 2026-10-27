@@ -4,6 +4,11 @@ Ein verteiltes Zwei-Personen-Spiel: Zwei Spieler raten abwechselnd dasselbe gehe
 Tier. Jeder Tipp wird vom Server bewertet und **beiden** Spielern angezeigt. Wer das
 Tier zuerst nennt, gewinnt.
 
+<p>
+  <img src="docs/lobby.png" width="49%" alt="Die Lobby: links „Schnell spielen“ mit Moduswahl, rechts drei offene private Lobbys mit Modus und Zugzeit">
+  <img src="docs/spielfeld.png" width="49%" alt="Eine laufende Partie: Eingabefeld, Zuguhr und die Tabelle der Tipps mit grünen, gelben und grauen Kacheln samt Symbolen und Pfeilen">
+</p>
+
 Studienarbeit im Modul **W3WI_110.2 Web-Entwicklung**, DHBW Mannheim
 Autor: Nico Breull
 
@@ -28,24 +33,30 @@ erkennt Spieler an ihrer Verbindung, nicht an Cookies. Nach der Anmeldung steht 
 auf **Warteschlange betreten**, startet die Partie. Alternativ eröffnet einer eine
 private Lobby mit Passwort, und der andere tritt ihr bei.
 
-Der Server gibt beim Start alle Adressen aus, unter denen er erreichbar ist,
-inklusive IPv4 und IPv6:
+Der Server lauscht auf IPv4 **und** IPv6 und gibt beim Start die Adressen dieses
+Rechners aus:
 
 ```
   Zoodle laeuft (… Tiere geladen)
 
     http://localhost:3000
     http://192.168.0.10:3000
+    http://[2001:db8::10]:3000
     http://[fe80::1234:5678:9abc:def0]:3000
 
   Beenden mit Strg+C
 ```
 
+Erreichbar ist davon, was das Netz zulässt. Adressen mit `fe80:` gelten nur im
+eigenen Netzabschnitt, Browser öffnen sie nicht. Auf dem DHBW-Server steht auch eine
+IPv4-Adresse in der Liste (`10.200.…`), die aber nur intern gilt. Von außen erreicht
+man ihn über IPv6 bzw. die HTTPS-Adresse (siehe [Auf einem Server betreiben](#auf-einem-server-betreiben)).
+
 **Inhalt**
 
 - [Zugang zum Code](#zugang-zum-code)
-- [Betrieb](#betrieb)
-- [Auf einem Server betreiben](#auf-einem-server-betreiben)
+- [Bewertungskriterien im Überblick](#bewertungskriterien-im-überblick)
+- [Spielregeln und Bewertung](#spielregeln-und-bewertung)
 - [Voraussetzungen](#voraussetzungen)
 - [Prüfwerkzeuge](#prüfwerkzeuge)
 - [Projektstruktur](#projektstruktur)
@@ -55,10 +66,11 @@ inklusive IPv4 und IPv6:
 - [Lobby und Spielmodi](#lobby-und-spielmodi)
 - [Zugzeit](#zugzeit)
 - [Duell: zwei Bretter und Live-Druck](#duell-zwei-bretter-und-live-druck)
-- [Spielregeln und Bewertung](#spielregeln-und-bewertung)
 - [Entwurfsentscheidungen](#entwurfsentscheidungen)
 - [Sicherheit](#sicherheit)
 - [Tests](#tests)
+- [Betrieb](#betrieb)
+- [Auf einem Server betreiben](#auf-einem-server-betreiben)
 
 ---
 
@@ -74,214 +86,50 @@ Anmeldung bei GitHub ist nicht nötig.
 
 ---
 
-## Betrieb
+## Bewertungskriterien im Überblick
 
-### Port festlegen
+Wo die Kriterien der Aufgabenstellung erfüllt sind – in dieser README und im Code:
 
-Alle drei Varianten funktionieren:
-
-```bash
-npm start                 # Port 3000 (Standard)
-npm start -- 8080         # Port als Argument – geht mit jedem Port
-PORT=8080 npm start       # Port als Umgebungsvariable
-npm run 3333              # wie auf Folie 6 – nur für 3000, 3333 und 8080
-```
-
-**Warum `npm run <port>` nur für drei Ports geht:** Folie 6 nennt `npm run <port>`.
-`npm run` sucht in `package.json` ein Skript, das _genau so heißt_ wie das, was man
-eintippt – Platzhalter wie „irgendeine Zahl“ kennt npm nicht. Deshalb stehen die
-üblichen Ports als eigene Skripte drin (`"3333": "node server/server.js 3333"`), und
-`tests/startbefehle.test.js` prüft, dass jedes auf seinem Port startet. Für jeden
-anderen Port gilt `npm start -- <port>`. `npm build` aus der Folie gibt es in npm
-nicht (`Unknown command`) – der Build heißt deshalb `npm run build`.
-
-Ist der Port schon belegt, beendet sich der Server mit einer klaren Meldung und
-schlägt den nächsten Port vor (`npm start -- 3001`) – statt mit einer Fehlermeldung
-von Node abzubrechen.
-
-### Im Hintergrund laufen lassen
-
-`npm start` blockiert das Terminal. Für den Dauerbetrieb:
-
-```bash
-nohup npm start -- 3000 > zoodle.log 2>&1 &
-```
-
-`nohup` sorgt dafür, dass der Server weiterläuft, wenn man das Terminal schließt
-oder die SSH-Verbindung trennt. Alle Ausgaben landen in `zoodle.log`.
-
-Nachsehen, ob er läuft — und ihn wieder beenden:
-
-```bash
-ps aux | grep "[s]erver/server.js"    # zeigt den Prozess, falls er läuft
-pkill -f "[s]erver/server.js"         # beendet ihn
-tail -f zoodle.log                    # Log mitlesen, Abbruch mit Strg+C
-```
-
-Die eckigen Klammern um das erste Zeichen sind kein Tippfehler: Ohne sie steht das
-Suchmuster selbst in der Kommandozeile und der Befehl findet sich selbst. Bei
-`pkill` ist das gefährlich — es beendet dann die eigene Shell mit.
+| Kriterium                                  | Wo                                                                                                                                                                                                         |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build-Prozess nach dem Checkout            | [Schnellstart](#schnellstart): `npm install`, `npm run build`, `npm run 3000`. Was der Build prüft: [Voraussetzungen](#voraussetzungen)                                                                    |
+| Pflichtablauf Login → Warten → Züge → Sieg | [Ablauf der Kommunikation](#ablauf-der-kommunikation) (Sequenzdiagramm), „Schnell spielen“ in [Lobby und Spielmodi](#lobby-und-spielmodi), danach Revanche oder zurück in die Lobby                        |
+| Modulares und modernes CSS                 | 8 Dateien in `public/css/`, je eine Kaskadenebene (`@layer`), Farben nur aus `tokens.css`, natives Nesting, kein `!important` (bricht den Build ab) – [Zustände im Browser](#zustände-im-browser)          |
+| Semantisches HTML                          | `<main>`, `<section>`, `<dialog>`, `<table>` mit `<th scope="col">`, `<fieldset>` mit Radio-Knöpfen – [Zustände im Browser](#zustände-im-browser), [Entwurfsentscheidungen](#entwurfsentscheidungen)       |
+| Layout ab 1024 × 768                       | Duell-Bretter untereinander statt nebeneinander – [Duell](#duell-zwei-bretter-und-live-druck); Lobbyliste bis 390 px geprüft – [Lobby und Spielmodi](#lobby-und-spielmodi)                                 |
+| Animationen                                | Spielmomente, Zuguhr, Herzschlag im Duell; alle unter `prefers-reduced-motion`, keine länger als 5 s – [Zustände im Browser](#zustände-im-browser)                                                         |
+| Client-Server-Kommunikation                | Socket.io, 5 Mermaid-Diagramme und eine vollständige Nachrichtenübersicht – [Ablauf der Kommunikation](#ablauf-der-kommunikation)                                                                          |
+| Robustheit gegen Fehler und Cheating       | Sechs Prüfungen bei jedem Zug, geheimes Tier nur auf dem Server, Nachrichtenbremse, Server stürzt nicht ab – [Entwurfsentscheidungen](#entwurfsentscheidungen), [Sicherheit](#sicherheit), [Tests](#tests) |
+| Verständliches JavaScript                  | Kleine Module mit je einer Aufgabe, deutsche Namen, Kommentare mit dem Warum, Spielregeln an einer Stelle (`pruefeRateversuch`) – [Architektur](#architektur), [Prüfwerkzeuge](#prüfwerkzeuge)             |
+| Architektur und Kommunikationsablauf       | [Architektur](#architektur) und [Ablauf der Kommunikation](#ablauf-der-kommunikation), jeweils mit Mermaid-Diagramm                                                                                        |
+| Keine großen Frameworks                    | Im Spielbetrieb nur `express` und `socket.io`, im Browser reines JavaScript – [Voraussetzungen](#voraussetzungen)                                                                                          |
+| Firefox, Safari, Chrome                    | Alle drei von Hand durchgespielt, Chrome und Safari (WebKit) zusätzlich automatisiert                                                                                                                      |
+| Läuft auf Ubuntu, auch mit IPv4            | Lauscht auf IPv4 und IPv6; Betrieb auf dem DHBW-Server mit systemd und HTTPS – [Auf einem Server betreiben](#auf-einem-server-betreiben)                                                                   |
 
 ---
 
-## Auf einem Server betreiben
+## Spielregeln und Bewertung
 
-Getestet auf Ubuntu 26.04 mit dem Hochschulserver der DHBW Mannheim. Node.js und das
-Projekt liegen im Benutzerverzeichnis, die Schritte 1–3 brauchen **kein `sudo`**.
-Nur der systemd-Dienst (4) und Caddy (5) werden einmalig mit `sudo` eingerichtet –
-wer das nicht darf, nimmt stattdessen den Autostart über cron (weiter unten).
+Jeder Tipp wird in **sieben Kategorien** bewertet:
 
-### 1. Verbinden
+| Kategorie  | Art  | „nah dran“ bedeutet                    |
+| ---------- | ---- | -------------------------------------- |
+| Klasse     | Text | gleiche Verwandtschaftsgruppe          |
+| Lebensraum | Text | gleiche Lebensraumgruppe               |
+| Ernährung  | Text | einer von beiden ist „Allesfresser“    |
+| Gewicht    | Zahl | Verhältnis zwischen 0,4 und 2,5        |
+| Größe      | Zahl | Verhältnis zwischen 0,4 und 2,5        |
+| Alter      | Zahl | Verhältnis zwischen 0,4 und 2,5        |
+| Aktiv      | Text | einer von beiden ist „dämmerungsaktiv“ |
 
-Der DHBW-Server ist von außen nur über VPN erreichbar (Cisco Secure Client,
-`drogon.dhbw-mannheim.de`). Ohne aktives VPN läuft `ssh` in einen Timeout.
+Zahlen gelten als **Treffer**, wenn sie höchstens 10 % abweichen. Bei einem Treffer
+wird bewusst **kein** Pfeil angezeigt — eine grüne Kachel mit Richtungspfeil wäre
+widersprüchlich.
 
-```bash
-ssh ubuntu@2001:7c0:1b20:c913:1::2f4
-```
+Die Verwandtschaftsgruppen stehen als `GRUPPEN` in `server/spiel.js`:
 
-### 2. Node.js über nvm installieren
-
-Nur beim ersten Mal nötig. Der Node Version Manager installiert nach `~/.nvm` und
-braucht keine Administratorrechte:
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-source ~/.bashrc
-nvm install --lts
-nvm alias default lts/*
-node --version        # zeigt die installierte Version, mindestens v20.11
-```
-
-`source ~/.bashrc` ist wichtig: Ohne diese Zeile kennt die laufende Sitzung den
-Befehl `nvm` noch nicht.
-
-### 3. Projekt holen und prüfen
-
-```bash
-git clone https://github.com/Kina4You/zoodle-abgabe.git ~/zoodle
-cd ~/zoodle
-npm install
-npm run build
-npm test
-```
-
-Alle Tests müssen grün sein, bevor es weitergeht. Die Anzahl steht am Ende der
-Ausgabe von `npm test` – hier steht bewusst keine Zahl, sie würde nur veralten.
-
-### 4. Als Dienst starten (systemd)
-
-Zoodle läuft auf dem Server als **systemd-Dienst** `zoodle`. systemd startet es beim
-Hochfahren und nach **jedem** Ende neu – Absturz, `kill`, Neustart des Rechners.
-Die Dienstdatei `/etc/systemd/system/zoodle.service`:
-
-```ini
-[Unit]
-Description=Zoodle - Rateduell fuer zwei Spieler (DHBW Web-Entwicklung)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/zoodle
-# Voller Pfad: systemd kennt nvm nicht.
-ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node server/server.js 3333
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Einrichten (einmalig, braucht `sudo`):
-
-```bash
-sudo nano /etc/systemd/system/zoodle.service     # Inhalt von oben
-sudo systemctl daemon-reload
-sudo systemctl enable --now zoodle               # jetzt starten + beim Hochfahren
-```
-
-Bedienen:
-
-```bash
-systemctl status zoodle              # läuft er? seit wann? letzte Logzeilen
-sudo systemctl restart zoodle        # neu starten, z. B. nach einem Update
-sudo systemctl stop zoodle           # anhalten (bleibt aus bis zum nächsten Start/Neustart)
-journalctl -u zoodle -f              # Log live mitlesen, Ende mit Strg+C
-journalctl -u zoodle --since today   # alles von heute
-```
-
-Getestet: Nach `kill -9` (wie ein echter Absturz) ist Zoodle nach 3 Sekunden wieder
-da, nach `sudo reboot` von selbst ebenfalls.
-
-### 5. HTTPS über Caddy
-
-Auf dem DHBW-Server steht **Caddy** vor Zoodle: Caddy nimmt die HTTPS-Verbindungen an
-(Zertifikat der DHBW) und reicht sie an `127.0.0.1:3333` weiter. `/etc/caddy/Caddyfile`:
-
-```
-zoodle.s252882-at-student-dhbw-mannheim-de.users.dhbw.site {
-    tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
-    reverse_proxy 127.0.0.1:3333
-}
-```
-
-Gespielt wird dann unter **https://zoodle.s252882-at-student-dhbw-mannheim-de.users.dhbw.site**
-– `http://` leitet Caddy von selbst auf `https://` um. Direkt (ohne Verschlüsselung)
-bleibt Zoodle unter `http://[2001:7c0:1b20:c913:1::2f4]:3333` erreichbar; die eckigen
-Klammern gehören dort zur IPv6-Adresse.
-
-**Die echte Adresse der Spieler.** Hinter Caddy kommen alle Verbindungen von
-`127.0.0.1`. Damit die Grenzen je Adresse (3 offene Lobbys, Passwort-Sperre) nicht für
-alle gemeinsam gelten, liest `server/adresse.js` die Kopfzeile `X-Forwarded-For`, die
-Caddy mitschickt – aber **nur** für Verbindungen vom eigenen Rechner. Wer direkt auf
-Port 3333 kommt, kann sich mit einer gefälschten Kopfzeile keine neue Adresse ausdenken.
-
-### 6. Auf einen neueren Stand bringen
-
-```bash
-cd ~/zoodle
-git pull
-npm install
-npm test
-sudo systemctl restart zoodle
-```
-
-Bricht `git pull` mit _"Your local changes to the following files would be
-overwritten"_ für `package-lock.json` ab, hat `npm install` die Datei verändert.
-Sie wird ohnehin erzeugt und kann verworfen werden:
-
-```bash
-git checkout -- package-lock.json
-git pull
-```
-
-### Ohne `sudo`: Autostart über cron
-
-Wer kein `sudo` hat, kann statt systemd `scripts/zoodle-start.sh` nehmen: `cron` ruft
-es beim Hochfahren und alle 5 Minuten auf, und es startet Zoodle nur, wenn es nicht
-schon läuft. **Nicht beides zugleich** einrichten – sonst streiten sich systemd und
-cron um den Port.
-
-```bash
-( crontab -l 2>/dev/null; \
-  echo "@reboot $HOME/zoodle/scripts/zoodle-start.sh 3333"; \
-  echo "*/5 * * * * $HOME/zoodle/scripts/zoodle-start.sh 3333" ) | crontab -
-```
-
-Dienst und Skript sind nur Betrieb, kein Teil des Spiels: Dass der Server bei Fehlern
-nicht abstürzt, steckt im Code selbst (siehe _Der Server stürzt nicht ab_). Sie helfen
-in den Fällen, gegen die kein Code im Spiel etwas tun kann – ein Neustart des Rechners
-oder ein von außen beendeter Prozess.
-
-### Was dabei zu beachten ist
-
-- **Von außen sind auf dem DHBW-Server nur 80 und 443 (Caddy) sowie 3333 offen.**
-  Andere Ports blockt die Firewall.
-- **Die Spieladresse hat nur einen IPv6-Eintrag (AAAA), keinen für IPv4.** Über IPv6
-  ist sie von überall erreichbar, auch ohne VPN (geprüft am 26.10. aus einem Heimnetz).
-  Ein Gerät ohne IPv6 kommt nicht hin – dann hilft das DHBW-Netz bzw. das VPN.
+- **Klasse:** [Säugetier, Vogel] · [Reptil, Amphibie, Fisch] · [Insekt, Weichtier, Krebstier, Spinnentier]
+- **Lebensraum:** [Ozean, Süßwasser] · [Savanne, Wüste, Grasland] · [Wald, Regenwald] · [Gebirge, Polargebiet, Siedlung]
 
 ---
 
@@ -335,6 +183,7 @@ zoodle-abgabe/
 ├── .git-blame-ignore-revs    Reine Formatierungs-Commits, die blame überspringt
 ├── data/
 │   └── tiere.json            über hundert Lebewesen mit je 7 Eigenschaften
+├── docs/                     Bildschirmfotos für diese README (lädt das Spiel nie)
 ├── server/
 │   ├── server.js             HTTP + Socket.io, verdrahtet die Module
 │   ├── partien.js            Warteschlange und Partieverwaltung
@@ -814,6 +663,12 @@ Im Code: `Spiel` (`spiel.js`) hat dafür `phase` (`'wahl'` / `'raten'`), `ziele`
   geöffnet hat. Verschwindet die Lobby, deren Knopf gerade fokussiert ist, springt er
   auf die Überschrift „Private Lobbys“. Ist sie weg, während ihr Dialog offen ist,
   bleibt nur „Abbrechen“ aktiv.
+- **Fokus beim Spielstart:** Ist man dran oder muss im Duell wählen, springt der Fokus
+  ins Eingabefeld, sofern er nicht gerade woanders gebraucht wird. Als „nirgends“
+  zählt dabei auch ein Fokus auf etwas Unsichtbarem: Chrome gibt ihn beim Schließen
+  des Lobby-Dialogs an einen Knopf der gleich darauf ausgeblendeten Lobby zurück,
+  Safari lässt ihn im geschlossenen Dialog stehen. Ohne diese Prüfung tippte, wer nur
+  mit Tastatur oder Screenreader spielt, nach „Wähle ein Tier“ ins Leere.
 
 ---
 
@@ -907,31 +762,6 @@ gewählt), Tipps und „n von 7“, der Sieger hervorgehoben. Das Fazit sagt „
 schon heiß – es fehlten nur noch Gewicht und Größe.“ oder „Klarer Sieg – …“. Beide Bretter
 bleiben darunter stehen, die Untertitel in der Vergangenheit. Eine Revanche setzt alles
 zurück.
-
----
-
-## Spielregeln und Bewertung
-
-Jeder Tipp wird in **sieben Kategorien** bewertet:
-
-| Kategorie  | Art  | „nah dran“ bedeutet                    |
-| ---------- | ---- | -------------------------------------- |
-| Klasse     | Text | gleiche Verwandtschaftsgruppe          |
-| Lebensraum | Text | gleiche Lebensraumgruppe               |
-| Ernährung  | Text | einer von beiden ist „Allesfresser“    |
-| Gewicht    | Zahl | Verhältnis zwischen 0,4 und 2,5        |
-| Größe      | Zahl | Verhältnis zwischen 0,4 und 2,5        |
-| Alter      | Zahl | Verhältnis zwischen 0,4 und 2,5        |
-| Aktiv      | Text | einer von beiden ist „dämmerungsaktiv“ |
-
-Zahlen gelten als **Treffer**, wenn sie höchstens 10 % abweichen. Bei einem Treffer
-wird bewusst **kein** Pfeil angezeigt — eine grüne Kachel mit Richtungspfeil wäre
-widersprüchlich.
-
-Die Verwandtschaftsgruppen stehen als `GRUPPEN` in `server/spiel.js`:
-
-- **Klasse:** [Säugetier, Vogel] · [Reptil, Amphibie, Fisch] · [Insekt, Weichtier, Krebstier, Spinnentier]
-- **Lebensraum:** [Ozean, Süßwasser] · [Savanne, Wüste, Grasland] · [Wald, Regenwald] · [Gebirge, Polargebiet, Siedlung]
 
 ---
 
@@ -1106,3 +936,225 @@ schlagen sofort vier Tests fehl.
 **Prüfprotokolle:** [`review-befunde.md`](review-befunde.md) hält fest, was in den
 Code-Reviews gefunden und wie es behoben wurde – dazu die Sicherheitsprüfung, die
 Barrierefreiheits- und Kontrastmessungen und die Selbstprüfung, jeweils mit Commit.
+
+---
+
+## Betrieb
+
+### Port festlegen
+
+Alle drei Varianten funktionieren:
+
+```bash
+npm start                 # Port 3000 (Standard)
+npm start -- 8080         # Port als Argument – geht mit jedem Port
+PORT=8080 npm start       # Port als Umgebungsvariable
+npm run 3333              # wie auf Folie 6 – nur für 3000, 3333 und 8080
+```
+
+**Warum `npm run <port>` nur für drei Ports geht:** Folie 6 nennt `npm run <port>`.
+`npm run` sucht in `package.json` ein Skript, das _genau so heißt_ wie das, was man
+eintippt – Platzhalter wie „irgendeine Zahl“ kennt npm nicht. Deshalb stehen die
+üblichen Ports als eigene Skripte drin (`"3333": "node server/server.js 3333"`), und
+`tests/startbefehle.test.js` prüft, dass jedes auf seinem Port startet. Für jeden
+anderen Port gilt `npm start -- <port>`. `npm build` aus der Folie gibt es in npm
+nicht (`Unknown command`) – der Build heißt deshalb `npm run build`.
+
+Ist der Port schon belegt, beendet sich der Server mit einer klaren Meldung und
+schlägt den nächsten Port vor (`npm start -- 3001`) – statt mit einer Fehlermeldung
+von Node abzubrechen.
+
+### Im Hintergrund laufen lassen
+
+`npm start` blockiert das Terminal. Für den Dauerbetrieb:
+
+```bash
+nohup npm start -- 3000 > zoodle.log 2>&1 &
+```
+
+`nohup` sorgt dafür, dass der Server weiterläuft, wenn man das Terminal schließt
+oder die SSH-Verbindung trennt. Alle Ausgaben landen in `zoodle.log`.
+
+Nachsehen, ob er läuft — und ihn wieder beenden:
+
+```bash
+ps aux | grep "[s]erver/server.js"    # zeigt den Prozess, falls er läuft
+pkill -f "[s]erver/server.js"         # beendet ihn
+tail -f zoodle.log                    # Log mitlesen, Abbruch mit Strg+C
+```
+
+Die eckigen Klammern um das erste Zeichen sind kein Tippfehler: Ohne sie steht das
+Suchmuster selbst in der Kommandozeile und der Befehl findet sich selbst. Bei
+`pkill` ist das gefährlich — es beendet dann die eigene Shell mit.
+
+---
+
+## Auf einem Server betreiben
+
+Getestet auf Ubuntu 26.04 mit dem Hochschulserver der DHBW Mannheim. Node.js und das
+Projekt liegen im Benutzerverzeichnis, die Schritte 1–3 brauchen **kein `sudo`**.
+Nur der systemd-Dienst (4) und Caddy (5) werden einmalig mit `sudo` eingerichtet –
+wer das nicht darf, nimmt stattdessen den Autostart über cron (weiter unten).
+
+### 1. Verbinden
+
+Der DHBW-Server hat nur eine IPv6-Adresse. Mit IPv6 geht es von überall, auch ohne
+VPN. Wer zu Hause kein IPv6 hat, verbindet sich zuerst mit dem DHBW-Netz bzw. dem VPN
+(Cisco Secure Client, `drogon.dhbw-mannheim.de`). Sonst läuft `ssh` in einen Timeout.
+
+```bash
+ssh ubuntu@2001:7c0:1b20:c913:1::2f4
+```
+
+### 2. Node.js über nvm installieren
+
+Nur beim ersten Mal nötig. Der Node Version Manager installiert nach `~/.nvm` und
+braucht keine Administratorrechte:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc
+nvm install --lts
+nvm alias default lts/*
+node --version        # zeigt die installierte Version, mindestens v20.11
+```
+
+`source ~/.bashrc` ist wichtig: Ohne diese Zeile kennt die laufende Sitzung den
+Befehl `nvm` noch nicht.
+
+### 3. Projekt holen und prüfen
+
+```bash
+git clone https://github.com/Kina4You/zoodle-abgabe.git ~/zoodle
+cd ~/zoodle
+npm install
+npm run build
+npm test
+```
+
+Alle Tests müssen grün sein, bevor es weitergeht. Die Anzahl steht am Ende der
+Ausgabe von `npm test` – hier steht bewusst keine Zahl, sie würde nur veralten.
+
+### 4. Als Dienst starten (systemd)
+
+Zoodle läuft auf dem Server als **systemd-Dienst** `zoodle`. systemd startet es beim
+Hochfahren und nach **jedem** Ende neu – Absturz, `kill`, Neustart des Rechners.
+Die Dienstdatei liegt unter `/etc/systemd/system/zoodle.service`:
+
+<details>
+<summary>Dienstdatei <code>/etc/systemd/system/zoodle.service</code> anzeigen</summary>
+
+```ini
+[Unit]
+Description=Zoodle - Rateduell fuer zwei Spieler (DHBW Web-Entwicklung)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/zoodle
+# Voller Pfad: systemd kennt nvm nicht.
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node server/server.js 3333
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+```
+
+</details>
+
+Einrichten (einmalig, braucht `sudo`):
+
+```bash
+sudo nano /etc/systemd/system/zoodle.service     # Inhalt von oben
+sudo systemctl daemon-reload
+sudo systemctl enable --now zoodle               # jetzt starten + beim Hochfahren
+```
+
+Bedienen:
+
+```bash
+systemctl status zoodle              # läuft er? seit wann? letzte Logzeilen
+sudo systemctl restart zoodle        # neu starten, z. B. nach einem Update
+sudo systemctl stop zoodle           # anhalten (bleibt aus bis zum nächsten Start/Neustart)
+journalctl -u zoodle -f              # Log live mitlesen, Ende mit Strg+C
+journalctl -u zoodle --since today   # alles von heute
+```
+
+Getestet: Nach `kill -9` (wie ein echter Absturz) ist Zoodle nach 3 Sekunden wieder
+da, nach `sudo reboot` von selbst ebenfalls.
+
+### 5. HTTPS über Caddy
+
+Auf dem DHBW-Server steht **Caddy** vor Zoodle: Caddy nimmt die HTTPS-Verbindungen an
+(Zertifikat der DHBW) und reicht sie an `127.0.0.1:3333` weiter. `/etc/caddy/Caddyfile`:
+
+<details>
+<summary><code>/etc/caddy/Caddyfile</code> anzeigen</summary>
+
+```
+zoodle.s252882-at-student-dhbw-mannheim-de.users.dhbw.site {
+    tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
+    reverse_proxy 127.0.0.1:3333
+}
+```
+
+</details>
+
+Gespielt wird dann unter **https://zoodle.s252882-at-student-dhbw-mannheim-de.users.dhbw.site**
+– `http://` leitet Caddy von selbst auf `https://` um. Direkt (ohne Verschlüsselung)
+bleibt Zoodle unter `http://[2001:7c0:1b20:c913:1::2f4]:3333` erreichbar; die eckigen
+Klammern gehören dort zur IPv6-Adresse.
+
+**Die echte Adresse der Spieler.** Hinter Caddy kommen alle Verbindungen von
+`127.0.0.1`. Damit die Grenzen je Adresse (3 offene Lobbys, Passwort-Sperre) nicht für
+alle gemeinsam gelten, liest `server/adresse.js` die Kopfzeile `X-Forwarded-For`, die
+Caddy mitschickt – aber **nur** für Verbindungen vom eigenen Rechner. Wer direkt auf
+Port 3333 kommt, kann sich mit einer gefälschten Kopfzeile keine neue Adresse ausdenken.
+
+### 6. Auf einen neueren Stand bringen
+
+```bash
+cd ~/zoodle
+git pull
+npm install
+npm test
+sudo systemctl restart zoodle
+```
+
+Bricht `git pull` mit _"Your local changes to the following files would be
+overwritten"_ für `package-lock.json` ab, hat `npm install` die Datei verändert.
+Sie wird ohnehin erzeugt und kann verworfen werden:
+
+```bash
+git checkout -- package-lock.json
+git pull
+```
+
+### Ohne `sudo`: Autostart über cron
+
+Wer kein `sudo` hat, kann statt systemd `scripts/zoodle-start.sh` nehmen: `cron` ruft
+es beim Hochfahren und alle 5 Minuten auf, und es startet Zoodle nur, wenn es nicht
+schon läuft. **Nicht beides zugleich** einrichten – sonst streiten sich systemd und
+cron um den Port.
+
+```bash
+( crontab -l 2>/dev/null; \
+  echo "@reboot $HOME/zoodle/scripts/zoodle-start.sh 3333"; \
+  echo "*/5 * * * * $HOME/zoodle/scripts/zoodle-start.sh 3333" ) | crontab -
+```
+
+Dienst und Skript sind nur Betrieb, kein Teil des Spiels: Dass der Server bei Fehlern
+nicht abstürzt, steckt im Code selbst (siehe _Der Server stürzt nicht ab_). Sie helfen
+in den Fällen, gegen die kein Code im Spiel etwas tun kann – ein Neustart des Rechners
+oder ein von außen beendeter Prozess.
+
+### Was dabei zu beachten ist
+
+- **Von außen sind auf dem DHBW-Server nur 80 und 443 (Caddy) sowie 3333 offen.**
+  Andere Ports blockt die Firewall.
+- **Die Spieladresse hat nur einen IPv6-Eintrag (AAAA), keinen für IPv4.** Über IPv6
+  ist sie von überall erreichbar, auch ohne VPN (geprüft am 26.10. aus einem Heimnetz).
+  Ein Gerät ohne IPv6 kommt nicht hin – dann hilft das DHBW-Netz bzw. das VPN.
